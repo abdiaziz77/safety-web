@@ -28,7 +28,9 @@ import {
   ListItemText,
   ListItemAvatar,
   Avatar,
-  IconButton
+  IconButton,
+  useMediaQuery,
+  useTheme
 } from "@mui/material";
 import {
   CheckCircle,
@@ -51,6 +53,8 @@ const MyReportsPage = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -156,6 +160,7 @@ const MyReportsPage = () => {
         maxWidth="md" 
         fullWidth
         scroll="paper"
+        fullScreen={isMobile}
       >
         <DialogTitle>
           <Box display="flex" justifyContent="space-between" alignItems="center">
@@ -174,7 +179,7 @@ const MyReportsPage = () => {
               <CircularProgress />
             </Box>
           ) : (
-            <Grid container spacing={3}>
+            <Grid container spacing={2}>
               <Grid item xs={12} md={8}>
                 {/* Basic Information */}
                 <Card variant="outlined" sx={{ mb: 2 }}>
@@ -353,45 +358,49 @@ const MyReportsPage = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" mt={4}>
+      <div className="min-h-screen bg-blue-100 flex items-center justify-center">
         <CircularProgress />
-      </Box>
+      </div>
     );
   }
 
   if (reports.length === 0) {
     return (
-      <Card variant="outlined" sx={{ maxWidth: 600, mx: "auto", mt: 4 }}>
-        <CardContent sx={{ textAlign: "center", py: 4 }}>
-          <Typography variant="h6" gutterBottom>
-            You haven't submitted any reports yet
-          </Typography>
-          <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
-            Submit your first report to get started
-          </Typography>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            component={Link}
-            to="/dashboard/reports"
-          >
-            Submit New Report
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="min-h-screen bg-blue-100 flex items-center justify-center p-4">
+        <Card variant="outlined" sx={{ maxWidth: 600, mx: "auto" }}className="bg-blue-100">
+          <CardContent sx={{ textAlign: "center", py: 4 }}>
+            <Typography variant="h6" gutterBottom>
+              You haven't submitted any reports yet
+            </Typography>
+            <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
+              Submit your first report to get started
+            </Typography>
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              component={Link}
+              to="/dashboard/reports"
+            >
+              Submit New Report
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <>
-      <div className="max-w-4xl mx-auto bg-white shadow-xl rounded-xl p-6 my-6">
+    <div className="min-h-screen bg-blue-100">
+  <div className="max-w-4xl mx-auto p-4 md:p-6 pt-4 pb-6 md:pt-6 md:pb-8">
         <Box
           display="flex"
           justifyContent="space-between"
           alignItems="center"
+          flexDirection={isMobile ? "column" : "row"}
+          gap={isMobile ? 2 : 0}
           mb={4}
         >
-          <Typography variant="h4" fontWeight="bold">
+          <Typography variant="h4" fontWeight="bold" textAlign={isMobile ? "center" : "left"}>
             My Reports
           </Typography>
           <Button
@@ -399,60 +408,111 @@ const MyReportsPage = () => {
             startIcon={<Add />}
             component={Link}
             to="/dashboard/reports"
+            fullWidth={isMobile}
           >
             New Report
           </Button>
         </Box>
 
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Report ID</TableCell>
-                <TableCell>Title</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>Date Submitted</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {reports.map((report) => (
-                <TableRow key={report.id}>
-                  <TableCell>#{report.id?.slice(0, 8) || 'N/A'}</TableCell>
-                  <TableCell>{report.title || 'N/A'}</TableCell>
-                  <TableCell>
-                    <Chip label={report.report_type || 'N/A'} size="small" />
-                  </TableCell>
-                  <TableCell>
-                    {report.created_at 
+        {isMobile ? (
+          // Mobile view: Card layout
+          <Box display="flex" flexDirection="column" gap={2}>
+            {reports.map((report) => (
+              <Card key={report.id} variant="outlined">
+                <CardContent>
+                  <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1}>
+                    <Typography variant="h6" component="h2">
+                      {report.title || 'N/A'}
+                    </Typography>
+                    <Chip 
+                      label={report.report_type || 'N/A'} 
+                      size="small" 
+                      sx={{ ml: 1 }}
+                    />
+                  </Box>
+                  
+                  <Box display="flex" alignItems="center" gap={1} mb={1}>
+                    {getStatusIcon(report.status)}
+                    <Typography variant="body2">
+                      {report.status || 'Unknown'}
+                    </Typography>
+                  </Box>
+                  
+                  <Typography variant="body2" color="textSecondary" mb={2}>
+                    Submitted: {report.created_at 
                       ? new Date(report.created_at).toLocaleDateString() 
                       : 'N/A'
                     }
-                  </TableCell>
-                  <TableCell>
-                    <Box display="flex" alignItems="center" gap={1}>
-                      {getStatusIcon(report.status)}
-                      <Typography variant="body2">
-                        {report.status || 'Unknown'}
-                      </Typography>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      onClick={() => handleViewDetails(report)}
-                      disabled={detailsLoading}
-                    >
-                      View Details
-                    </Button>
-                  </TableCell>
+                  </Typography>
+                  
+                  <Typography variant="body2" color="textSecondary" mb={2}>
+                    ID: #{report.id?.slice(0, 8) || 'N/A'}
+                  </Typography>
+                  
+                  <Button
+                    variant="outlined"
+                    fullWidth
+                    onClick={() => handleViewDetails(report)}
+                    disabled={detailsLoading}
+                  >
+                    View Details
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </Box>
+        ) : (
+          // Desktop view: Table layout
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Report ID</TableCell>
+                  <TableCell>Title</TableCell>
+                  <TableCell>Type</TableCell>
+                  <TableCell>Date Submitted</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Actions</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              </TableHead>
+              <TableBody>
+                {reports.map((report) => (
+                  <TableRow key={report.id}>
+                    <TableCell>#{report.id?.slice(0, 8) || 'N/A'}</TableCell>
+                    <TableCell>{report.title || 'N/A'}</TableCell>
+                    <TableCell>
+                      <Chip label={report.report_type || 'N/A'} size="small" />
+                    </TableCell>
+                    <TableCell>
+                      {report.created_at 
+                        ? new Date(report.created_at).toLocaleDateString() 
+                        : 'N/A'
+                      }
+                    </TableCell>
+                    <TableCell>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        {getStatusIcon(report.status)}
+                        <Typography variant="body2">
+                          {report.status || 'Unknown'}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => handleViewDetails(report)}
+                        disabled={detailsLoading}
+                      >
+                        View Details
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
       </div>
 
       <ReportDetailsDialog 
@@ -461,7 +521,7 @@ const MyReportsPage = () => {
         onClose={handleCloseDialog}
         loading={detailsLoading}
       />
-    </>
+    </div>
   );
 };
 

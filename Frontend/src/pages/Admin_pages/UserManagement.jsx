@@ -58,11 +58,7 @@ const UserManagement = () => {
       
       setUsers(usersData);
       setFilteredUsers(usersData);
-      
-      toast.success("Users loaded successfully", {
-        position: "top-right",
-        autoClose: 3000,
-      });
+     
       
     } catch (err) {
       console.error("Error fetching user data:", err);

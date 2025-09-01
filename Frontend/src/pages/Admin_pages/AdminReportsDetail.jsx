@@ -153,38 +153,7 @@ const AdminReportDetails = () => {
         <Typography variant="h4" fontWeight="bold">
           Report Details
         </Typography>
-        <Box display="flex" alignItems="center" gap={2}>
-          {isEditing ? (
-            <>
-              <Button
-                variant="outlined"
-                startIcon={<Cancel />}
-                onClick={() => {
-                  setIsEditing(false);
-                  setEditedData(report);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={<Save />}
-                onClick={handleSave}
-              >
-                Save Changes
-              </Button>
-            </>
-          ) : (
-            <Button
-              variant="contained"
-              startIcon={<Edit />}
-              onClick={() => setIsEditing(true)}
-            >
-              Edit
-            </Button>
-          )}
-        </Box>
+        
       </Box>
 
       <Grid container spacing={3}>
@@ -270,46 +239,9 @@ const AdminReportDetails = () => {
           </Card>
         </Grid>
 
-        {/* Admin Controls */}
+        
         <Grid item xs={12} md={4}>
-          <Card variant="outlined">
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Admin Controls
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-
-              <FormControl fullWidth sx={{ mb: 3 }}>
-                <InputLabel>Status</InputLabel>
-                <Select
-                  value={editedData.status || ""}
-                  onChange={(e) =>
-                    setEditedData({ ...editedData, status: e.target.value })
-                  }
-                  label="Status"
-                  disabled={!isEditing}
-                >
-                  <MenuItem value="Pending">Pending</MenuItem>
-                  <MenuItem value="In Progress">In Progress</MenuItem>
-                  <MenuItem value="Resolved">Resolved</MenuItem>
-                  <MenuItem value="Rejected">Rejected</MenuItem>
-                  <MenuItem value="Closed">Closed</MenuItem>
-                </Select>
-              </FormControl>
-
-              <TextField
-                label="Admin Notes"
-                multiline
-                rows={4}
-                fullWidth
-                value={editedData.admin_notes || ""}
-                onChange={(e) =>
-                  setEditedData({ ...editedData, admin_notes: e.target.value })
-                }
-                disabled={!isEditing}
-              />
-            </CardContent>
-          </Card>
+          
 
           <Card variant="outlined" sx={{ mt: 3 }}>
             <CardContent>
@@ -328,7 +260,7 @@ const AdminReportDetails = () => {
                 <ListItem>
                   <ListItemText
                     primary="Submitted By"
-                    secondary={report.user_email || "Anonymous"}
+                    secondary={report.user_email}
                   />
                 </ListItem>
                 <ListItem>

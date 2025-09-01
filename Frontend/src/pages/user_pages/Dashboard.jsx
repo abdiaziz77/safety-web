@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { 
   Phone, MapPin, Bell, Clock, Shield, AlertTriangle, 
   CheckCircle, Heart, Flame, FileText,
@@ -20,7 +21,7 @@ const Dashboard = () => {
   });
 
   const quickActions = [
-    { label: "Report Emergency", icon: Phone, variant: "emergency", description: "Call 911 or use app" },
+    { label: "Report Emergency", icon: Phone, variant: "emergency", description: "Call 101 or use app" },
     { label: "Police Report", icon: Shield, variant: "police", description: "Crime or safety concern" },
     { label: "Fire Emergency", icon: Flame, variant: "fire", description: "Fire, gas leak, hazmat" },
     { label: "Medical Help", icon: Heart, variant: "medical", description: "Health emergency" },
@@ -95,7 +96,7 @@ const Dashboard = () => {
       setStats({
         activeIncidents: reportsData.length,
         responseTime: `${(Math.random() * 5).toFixed(1)} min`,
-        yourReports: userReportsCount,
+        yourAlerts: activeAlertsData.length,
         communitySafety: `${90 + Math.floor(Math.random() * 10)}%`
       });
 
@@ -107,7 +108,7 @@ const Dashboard = () => {
       setStats({
         activeIncidents: 0,
         responseTime: '0 min',
-        yourReports: 0,
+        yourAlerts: 0,
         communitySafety: '0%'
       });
     } finally {
@@ -135,7 +136,7 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-blue-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto">
             <RefreshCw className="h-6 w-6 mx-auto mt-3" />
@@ -148,7 +149,7 @@ const Dashboard = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-blue-100 flex items-center justify-center">
         <div className="text-center p-6 bg-white rounded-lg shadow-md max-w-md">
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-gray-800 mb-2">Error Loading Dashboard</h3>
@@ -166,7 +167,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800">
+    <div className="min-h-screen bg-blue-100 text-gray-800">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Section */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl shadow-lg p-6 mb-8 text-white">
@@ -209,8 +210,8 @@ const Dashboard = () => {
             <div className="text-xs text-gray-500 mt-1">Faster than average</div>
           </div>
           <div className="bg-white rounded-lg shadow p-4 border-l-4 border-yellow-500">
-            <div className="text-gray-500 text-sm">Your Reports</div>
-            <div className="text-2xl font-bold">{stats.yourReports}</div>
+            <div className="text-gray-500 text-sm">Active Alerts</div>
+            <div className="text-2xl font-bold">{stats.yourAlerts}</div>
             <div className="text-xs text-gray-500 mt-1">1 currently active</div>
           </div>
           <div className="bg-white rounded-lg shadow p-4 border-l-4 border-purple-500">
@@ -231,9 +232,10 @@ const Dashboard = () => {
                   <AlertTriangle className="h-5 w-5 text-red-500 mr-2" />
                   Quick Emergency Actions
                 </h3>
-                <button className="text-sm text-blue-600 hover:text-blue-800">
+                <Link
+                  to="/dashboard/chat" className="text-sm text-blue-600 hover:text-blue-800">
                   View all
-                </button>
+                </Link>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4">
                 {quickActions.map((action, idx) => {
@@ -270,9 +272,10 @@ const Dashboard = () => {
                   <FileText className="h-5 w-5 text-blue-500 mr-2" />
                   Recent Reports
                 </h3>
-                <button className="text-sm text-blue-600 hover:text-blue-800">
+                <Link 
+                to ="/dashboard/reports" className="text-sm text-blue-600 hover:text-blue-800">
                   View all
-                </button>
+                </Link>
               </div>
               <div className="divide-y divide-gray-200">
                 {recentReports.length > 0 ? (
@@ -328,9 +331,11 @@ const Dashboard = () => {
                   <Bell className="h-5 w-5 text-yellow-500 mr-2" />
                   Active Alerts
                 </h3>
-                <button className="text-sm text-blue-600 hover:text-blue-800">
+                <Link 
+                to ="/dashboard/alerts"
+                className="text-sm text-blue-600 hover:text-blue-800">
                   View all
-                </button>
+                </Link>
               </div>
               <div className="divide-y divide-gray-200">
                 {activeAlerts.length > 0 ? (
@@ -398,10 +403,11 @@ const Dashboard = () => {
                   </div>
                 </div>
                 
-                <button className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-blue-600 hover:bg-blue-50">
+                <Link
+                to="/dashboard/settings" className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-blue-600 hover:bg-blue-50">
                   <MapPin className="h-5 w-5 mr-2" />
                   Update My Location
-                </button>
+                </Link>
               </div>
             </div>
 

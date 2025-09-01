@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, session
 from datetime import datetime
 from models import Alert, User, db   # ✅ import db
-from utils import admin_required, login_required
+from utils import admin_required, login_required, notify_new_alert
 import uuid
 
 alerts_bp = Blueprint('alerts', __name__)
@@ -73,6 +73,9 @@ def create_alert():
         db.session.add(alert)
         db.session.commit()
         
+        # Notify all users about the new alert
+        notify_new_alert(alert)
+        
         return jsonify(alert.to_dict()), 201
     except Exception as e:
         db.session.rollback()
@@ -99,6 +102,8 @@ def update_alert(alert_id):
             
         data = request.get_json()
         
+        old_status = alert.status  # Store old status
+        
         alert.title = data.get('title', alert.title)
         alert.message = data.get('message', alert.message)
         alert.type = data.get('type', alert.type)
@@ -112,6 +117,11 @@ def update_alert(alert_id):
             alert.end_date = parse_datetime_safe(data['end_date']) if data['end_date'] else None
         
         db.session.commit()
+        
+        # Notify users if alert status changed to Active or Critical
+        if 'status' in data and data['status'] != old_status and data['status'] in ['Active', 'Critical']:
+            notify_new_alert(alert)
+        
         return jsonify(alert.to_dict()), 200
     except Exception as e:
         db.session.rollback()
@@ -132,9 +142,14 @@ def update_alert_status(alert_id):
         valid_statuses = ['Active', 'Inactive', 'Resolved', 'Critical']
         if new_status not in valid_statuses:
             return jsonify({'error': 'Invalid status'}), 400
-            
+        
+        old_status = alert.status  # Store old status    
         alert.status = new_status
         db.session.commit()
+        
+        # Notify users if alert status changed to Active or Critical
+        if new_status != old_status and new_status in ['Active', 'Critical']:
+            notify_new_alert(alert)
         
         return jsonify(alert.to_dict()), 200
     except Exception as e:

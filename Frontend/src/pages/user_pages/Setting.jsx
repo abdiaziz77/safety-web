@@ -50,62 +50,52 @@ const Settings = () => {
   const [originalData, setOriginalData] = useState(null);
   const navigate = useNavigate();
 
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
   // Fetch user data on component mount
-// Fetch user data on component mount
-useEffect(() => {
-  const fetchUserData = async () => {
-    const token = Cookies.get('token');
-
-    
-
-    try {
-      const userResponse = await axios.get(
-        "http://127.0.0.1:5000/api/auth/get_current_user",
-        { 
-          withCredentials: true,
-          headers: {
-            Authorization: `Bearer ${token}`
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const userResponse = await axios.get(
+          'http://127.0.0.1:5000/api/auth/get_current_user',
+          { 
+            withCredentials: true
           }
-        }
-      );
+        );
 
-      const data = userResponse.data.user;
-      if (!data) throw new Error('No user data received');
+        const data = userResponse.data.user;
+        if (!data) throw new Error('No user data received');
 
-      const formattedData = {
-        id: data.id,
-        firstName: data.firstName || data.first_name || '',
-        lastName: data.lastName || data.last_name || '',
-        email: data.email || '',
-        phone: data.phone || '',
-        addressLine1: data.addressLine1 || data.address_line_1 || '',
-        addressLine2: data.addressLine2 || data.address_line_2 || '',
-        city: data.city || '',
-        state: data.state || '',
-        zipCode: data.zipCode || data.zip_code || '',
-        country: data.country || '',
-        dateOfBirth: data.dateOfBirth || data.date_of_birth || '',
-        gender: data.gender || 'Male',
-        emergencyContact: data.emergencyContact || '',
-        profilePhoto: data.profilePhoto || ''
-      };
+        const formattedData = {
+          id: data.id,
+          firstName: data.firstName || data.first_name || '',
+          lastName: data.lastName || data.last_name || '',
+          email: data.email || '',
+          phone: data.phone || '',
+          addressLine1: data.addressLine1 || data.address_line_1 || '',
+          addressLine2: data.addressLine2 || data.address_line_2 || '',
+          city: data.city || '',
+          state: data.state || '',
+          zipCode: data.zipCode || data.zip_code || '',
+          country: data.country || '',
+          dateOfBirth: data.dateOfBirth || data.date_of_birth || '',
+          gender: data.gender || 'Male',
+          emergencyContact: data.emergencyContact || '',
+          profilePhoto: data.profilePhoto || ''
+        };
 
-      setUserData(formattedData);
-      setOriginalData(formattedData);
-      setPhotoPreview(data.profilePhoto || '');
-    } catch (err) {
-      console.error('Failed to fetch user data:', err);
-      setError('Failed to load user data. Please try again.');
-      
-    } finally {
-      setLoading(false);
-    }
-  };
+        setUserData(formattedData);
+        setOriginalData(formattedData);
+        setPhotoPreview(data.profilePhoto || '');
+      } catch (err) {
+        console.error('Failed to fetch user data:', err);
+        setError('Failed to load user data. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  fetchUserData();
-}, [API_BASE, navigate]);
+    fetchUserData();
+  }, [navigate]);
+
   const handleUserDataChange = (e) => {
     const { name, value } = e.target;
     setUserData(prev => ({ ...prev, [name]: value }));
@@ -145,9 +135,8 @@ useEffect(() => {
     setSuccess('');
 
     try {
-      const token = Cookies.get('token');
       const response = await axios.put(
-       "http://127.0.0.1:5000/api/auth/profile",
+        'http://127.0.0.1:5000/api/auth/profile',
         {
           firstName: userData.firstName,
           lastName: userData.lastName,
@@ -163,10 +152,6 @@ useEffect(() => {
           emergencyContact: userData.emergencyContact
         },
         {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
           withCredentials: true
         }
       );
@@ -176,14 +161,15 @@ useEffect(() => {
       setOriginalData(userData);
       
       // Update user cookie if name changed
- const userCookie = Cookies.get('user');
-const updatedUser = {
-  ...(userCookie ? JSON.parse(userCookie) : {}),
-  firstName: userData.firstName,
-  lastName: userData.lastName
-};
-
-Cookies.set('user', JSON.stringify(updatedUser));; 
+      const userCookie = Cookies.get('user');
+      if (userCookie) {
+        const updatedUser = {
+          ...JSON.parse(userCookie),
+          firstName: userData.firstName,
+          lastName: userData.lastName
+        };
+        Cookies.set('user', JSON.stringify(updatedUser));
+      }
     } catch (err) {
       console.error('Profile update error:', err);
       setError(err.response?.data?.message || 'Failed to update profile. Please try again.');
@@ -205,19 +191,14 @@ Cookies.set('user', JSON.stringify(updatedUser));;
     }
 
     try {
-      const token = Cookies.get('token');
-      await axios.put(
-        "http://127.0.0.1:5000/api/auth/profile",
+      const response = await axios.post(
+        'http://127.0.0.1:5000/api/auth/change-password',
         {
           currentPassword: passwordData.currentPassword,
-          password: passwordData.newPassword
+          newPassword: passwordData.newPassword
         },
         {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          withCredentials: true
+          withCredentials: true // This sends the session cookie
         }
       );
 
@@ -230,7 +211,12 @@ Cookies.set('user', JSON.stringify(updatedUser));;
       });
     } catch (err) {
       console.error('Password update error:', err);
-      setError(err.response?.data?.message || 'Failed to update password. Please try again.');
+      
+      if (err.response?.status === 401) {
+        setError('Authentication failed. Please log in again.');
+      } else {
+        setError(err.response?.data?.message || 'Failed to update password. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -279,7 +265,7 @@ Cookies.set('user', JSON.stringify(updatedUser));;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-blue-100 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-extrabold text-gray-900">Account Settings</h1>

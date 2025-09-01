@@ -27,6 +27,9 @@ import {
   IconButton,
   Box,
   LinearProgress,
+  useMediaQuery,
+  useTheme,
+  MobileStepper
 } from "@mui/material";
 import { DatePicker, TimePicker } from "@mui/x-date-pickers";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -38,6 +41,8 @@ import {
   Videocam,
   Mic,
   AttachFile,
+  KeyboardArrowLeft,
+  KeyboardArrowRight
 } from "@mui/icons-material";
 
 const Reports = () => {
@@ -48,6 +53,8 @@ const Reports = () => {
   const fileInputRef = useRef(null);
   const [mediaFiles, setMediaFiles] = useState([]);
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const [formData, setFormData] = useState({
     // Basic Information
@@ -328,11 +335,11 @@ const Reports = () => {
               value={formData.description}
               onChange={handleChange}
               multiline
-              rows={4}
+              rows={isMobile ? 3 : 4}
               required
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>
               <LocalizationProvider dateAdapter={AdapterDateFns}>
                 <DatePicker
                   label="Date of Incident"
@@ -352,13 +359,14 @@ const Reports = () => {
               </LocalizationProvider>
             </div>
 
-            <FormControl component="fieldset">
+            <FormControl component="fieldset" fullWidth>
               <Typography variant="subtitle1">Urgency Level</Typography>
               <RadioGroup
-                row
+                row={!isMobile}
                 name="urgency"
                 value={formData.urgency}
                 onChange={handleChange}
+                sx={{ flexWrap: isMobile ? 'wrap' : 'nowrap' }}
               >
                 <FormControlLabel value="low" control={<Radio />} label="Low" />
                 <FormControlLabel value="medium" control={<Radio />} label="Medium" />
@@ -470,7 +478,7 @@ const Reports = () => {
               required
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>
               <TextField
                 label="Latitude"
                 name="latitude"
@@ -609,7 +617,7 @@ const Reports = () => {
                 <Typography variant="subtitle1" gutterBottom>
                   Selected Files:
                 </Typography>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
                   {mediaFiles.map((media) => (
                     <Paper key={media.id} elevation={2} sx={{ p: 2 }}>
                       <div className="flex items-center justify-between">
@@ -617,7 +625,7 @@ const Reports = () => {
                           {media.type === 'image' && <Image color="primary" sx={{ mr: 1 }} />}
                           {media.type === 'video' && <Videocam color="primary" sx={{ mr: 1 }} />}
                           {media.type === 'audio' && <Mic color="primary" sx={{ mr: 1 }} />}
-                          <Typography variant="body2" noWrap sx={{ maxWidth: 150 }}>
+                          <Typography variant="body2" noWrap sx={{ maxWidth: isMobile ? 100 : 150 }}>
                             {media.name}
                           </Typography>
                         </div>
@@ -718,7 +726,7 @@ const Reports = () => {
       case 6:
         return (
           <div className="space-y-6">
-            <Typography variant="h5">Review Your Report</Typography>
+            <Typography variant={isMobile ? "h6" : "h5"}>Review Your Report</Typography>
             
             <Card variant="outlined">
               <CardContent>
@@ -854,70 +862,108 @@ const Reports = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto bg-white shadow-xl rounded-xl p-6 my-6">
-      <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', mb: 4 }}>
-        Incident Report Submission
-      </Typography>
+    <div className="min-h-screen bg-blue-100 pt-2 pb-4 md:pt-4 md:pb-8">
+  <div className="max-w-4xl mx-auto bg-white shadow-xl rounded-xl p-4 md:p-6 mt-2 mb-4 md:mt-4 md:mb-6">
+        <Typography variant={isMobile ? "h5" : "h4"} gutterBottom sx={{ fontWeight: 'bold', mb: 4, textAlign: isMobile ? 'center' : 'left' }}>
+          Incident Report Submission
+        </Typography>
 
-      <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 4 }}>
-        {steps.map((label, index) => (
-          <Step key={label} completed={completed[index]}>
-            <StepLabel>{label}</StepLabel>
-          </Step>
-        ))}
-      </Stepper>
-
-      <div className="p-4">
-        {getStepContent(activeStep)}
-      </div>
-
-      <div className="flex justify-between mt-6">
-        <Button
-          disabled={activeStep === 0}
-          onClick={handleBack}
-          variant="outlined"
-          size="large"
-        >
-          Back
-        </Button>
-
-        {activeStep === steps.length - 1 ? (
-          <Button
-            variant="contained"
-            color="primary"
-            size="large"
-            onClick={handleSubmit}
-            disabled={isUploading}
-          >
-            Submit Report
-          </Button>
-        ) : (
-          <Button
-            variant="contained"
-            color="primary"
-            size="large"
-            onClick={() => {
-              handleStepComplete(activeStep);
-              handleNext();
+        {isMobile ? (
+          <MobileStepper
+            variant="text"
+            steps={steps.length}
+            position="static"
+            activeStep={activeStep}
+            sx={{ 
+              mb: 4, 
+              bgcolor: 'transparent',
+              '& .MuiMobileStepper-dot': {
+                width: 8,
+                height: 8,
+              }
             }}
-          >
-            Next
-          </Button>
+            nextButton={
+              <Button size="small" onClick={handleNext} disabled={activeStep === steps.length - 1}>
+                Next
+                <KeyboardArrowRight />
+              </Button>
+            }
+            backButton={
+              <Button size="small" onClick={handleBack} disabled={activeStep === 0}>
+                <KeyboardArrowLeft />
+                Back
+              </Button>
+            }
+          />
+        ) : (
+          <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 4 }}>
+            {steps.map((label, index) => (
+              <Step key={label} completed={completed[index]}>
+                <StepLabel>{label}</StepLabel>
+              </Step>
+            ))}
+          </Stepper>
         )}
+
+        {isMobile && (
+          <Typography variant="subtitle1" textAlign="center" sx={{ mb: 2, fontWeight: 'bold' }}>
+            {steps[activeStep]}
+          </Typography>
+        )}
+
+        <div className="p-2 md:p-4">
+          {getStepContent(activeStep)}
+        </div>
+
+        <div className={`flex ${isMobile ? 'flex-col-reverse gap-3' : 'justify-between'} mt-6`}>
+          <Button
+            disabled={activeStep === 0}
+            onClick={handleBack}
+            variant="outlined"
+            size={isMobile ? "medium" : "large"}
+            fullWidth={isMobile}
+          >
+            Back
+          </Button>
+
+          {activeStep === steps.length - 1 ? (
+            <Button
+              variant="contained"
+              color="primary"
+              size={isMobile ? "medium" : "large"}
+              onClick={handleSubmit}
+              disabled={isUploading}
+              fullWidth={isMobile}
+            >
+              Submit Report
+            </Button>
+          ) : (
+            <Button
+              variant="contained"
+              color="primary"
+              size={isMobile ? "medium" : "large"}
+              onClick={() => {
+                handleStepComplete(activeStep);
+                handleNext();
+              }}
+              fullWidth={isMobile}
+            >
+              Next
+            </Button>
+          )}
+        </div>
+
+        <Box display="flex" justifyContent="flex-end" mb={2} mt={isMobile ? 2 : 0}>
+          <Button
+            variant="outlined"
+            component={Link}
+            to="/dashboard/myreports"
+            fullWidth={isMobile}
+          >
+            View My Reports
+          </Button>
+        </Box>
       </div>
-
-
- <Box display="flex" justifyContent="flex-end" mb={2}>
-  <Button
-    variant="outlined"
-    component={Link}
-    to="/dashboard/myreports"
-  >
-    View My Reports
-  </Button>
-</Box>
-
-
     </div>
   );
 };

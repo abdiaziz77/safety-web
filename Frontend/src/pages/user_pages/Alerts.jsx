@@ -162,7 +162,7 @@ function AlertsList() {
             {/* Instructions */}
             {alert.instructions && (
               <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-2">Recommended Actions</h3>
+                <h3 className="textsm font-medium text-gray-500 mb-2">Recommended Actions</h3>
                 <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
                   <p className="text-yellow-700">{alert.instructions}</p>
                 </div>
@@ -204,106 +204,161 @@ function AlertsList() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center min-h-screen bg-blue-100">
         <Loader2 className="animate-spin w-10 h-10 text-blue-500" />
       </div>
     );
   }
 
   if (error) {
-    return <p className="text-red-500 text-center mt-10">{error}</p>;
+    return (
+      <div className="min-h-screen bg-blue-100 flex items-center justify-center">
+        <p className="text-red-500">{error}</p>
+      </div>
+    );
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
-        <AlertTriangle className="text-red-500" /> Active Alerts
-      </h1>
-
-      {/* Search & Filter */}
-      <div className="flex flex-col md:flex-row gap-4 mb-6">
-        <div className="flex items-center border rounded-lg px-3 py-2 flex-1">
-          <Search className="text-gray-500 mr-2" />
-          <input
-            type="text"
-            placeholder="Search alerts..."
-            className="w-full outline-none"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div className="flex items-center border rounded-lg px-3 py-2">
-          <Filter className="text-gray-500 mr-2" />
-          <select
-            className="outline-none"
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-          >
-            <option value="">All Types</option>
-            <option value="General">General</option>
-            <option value="Emergency">Emergency</option>
-            <option value="Weather">Weather</option>
-            <option value="Security">Security</option>
-          </select>
+    <div className="min-h-screen bg-blue-100">
+      {/* Header Section - Outside the box */}
+      <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-lg">
+        <div className="max-w-5xl mx-auto px-6 py-8">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="bg-white/20 p-3 rounded-full">
+              <AlertTriangle className="w-8 h-8" />
+            </div>
+            <h1 className="text-3xl font-bold">Active Alerts</h1>
+          </div>
+          <p className="text-blue-100 opacity-90">
+            Stay informed about important notifications and emergencies in your area
+          </p>
         </div>
       </div>
 
-      {/* Alerts List */}
-      {filteredAlerts.length === 0 ? (
-        <p className="text-gray-500 text-center">No alerts found.</p>
-      ) : (
-        <div className="space-y-4">
-          {filteredAlerts.map((alert) => (
-            <div
-              key={alert.id}
-              className="border rounded-lg p-4 shadow-sm hover:shadow-md transition"
-            >
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className={`p-1 rounded ${
-                      alert.type === "Emergency" ? "bg-red-100 text-red-600" :
-                      alert.type === "Weather" ? "bg-blue-100 text-blue-600" :
-                      alert.type === "Security" ? "bg-orange-100 text-orange-600" :
-                      "bg-gray-100 text-gray-600"
-                    }`}>
-                      <AlertTriangle className="w-4 h-4" />
-                    </div>
-                    <h2 className="text-lg font-semibold">{alert.title}</h2>
-                  </div>
-                  <p className="text-gray-600 mb-3">{alert.message}</p>
-                  <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-4 h-4" />
-                      {new Date(alert.start_date).toLocaleString()}
-                    </span>
-                    {alert.affected_area && (
-                      <span className="flex items-center gap-1">
-                        <MapPin className="w-4 h-4" />
-                        {alert.affected_area}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <button
-                  className="flex items-center gap-1 text-blue-500 hover:underline mt-3 md:mt-0 md:ml-4"
+      {/* Content Section */}
+      <div className="max-w-5xl mx-auto px-6 py-6 -mt-4">
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          {/* Search & Filter */}
+          <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 flex-1 shadow-sm focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition">
+              <Search className="text-gray-500 mr-2" />
+              <input
+                type="text"
+                placeholder="Search alerts by title or description..."
+                className="w-full outline-none"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 shadow-sm">
+              <Filter className="text-gray-500 mr-2" />
+              <select
+                className="outline-none bg-transparent"
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+              >
+                <option value="">All Alert Types</option>
+                <option value="General">General</option>
+                <option value="Emergency">Emergency</option>
+                <option value="Weather">Weather</option>
+                <option value="Security">Security</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Results Count */}
+          <div className="flex justify-between items-center mb-4">
+            <p className="text-gray-600 text-sm">
+              Showing {filteredAlerts.length} of {alerts.length} alerts
+            </p>
+            {filterType && (
+              <span className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full">
+                Filtered by: {filterType}
+              </span>
+            )}
+          </div>
+
+          {/* Alerts List */}
+          {filteredAlerts.length === 0 ? (
+            <div className="text-center py-12">
+              <AlertTriangle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500 text-lg">No alerts found</p>
+              <p className="text-gray-400 text-sm mt-1">
+                {searchTerm || filterType 
+                  ? "Try adjusting your search or filter criteria" 
+                  : "No active alerts at this time"
+                }
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredAlerts.map((alert) => (
+                <div
+                  key={alert.id}
+                  className="border border-gray-200 rounded-lg p-5 hover:shadow-md transition-all duration-200 hover:border-blue-100 cursor-pointer"
                   onClick={() => handleViewAlert(alert)}
                 >
-                  View Details <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className={`p-2 rounded-lg ${
+                          alert.type === "Emergency" ? "bg-red-100 text-red-600" :
+                          alert.type === "Weather" ? "bg-blue-100 text-blue-600" :
+                          alert.type === "Security" ? "bg-orange-100 text-orange-600" :
+                          "bg-gray-100 text-gray-600"
+                        }`}>
+                          <AlertTriangle className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h2 className="text-lg font-semibold text-gray-800">{alert.title}</h2>
+                          <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                            alert.type === "Emergency" ? "bg-red-500 text-white" :
+                            alert.type === "Weather" ? "bg-blue-500 text-white" :
+                            alert.type === "Security" ? "bg-orange-500 text-white" :
+                            "bg-gray-500 text-white"
+                          }`}>
+                            {alert.type || "General"}
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-gray-600 mb-4 line-clamp-2">{alert.message}</p>
+                      <div className="flex flex-wrap gap-4 text-sm text-gray-500">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-4 h-4" />
+                          {new Date(alert.start_date).toLocaleString()}
+                        </span>
+                        {alert.affected_area && (
+                          <span className="flex items-center gap-1">
+                            <MapPin className="w-4 h-4" />
+                            {alert.affected_area}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      className="flex items-center gap-1 text-blue-600 hover:text-blue-800 mt-3 md:mt-0 md:ml-4 font-medium"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewAlert(alert);
+                      }}
+                    >
+                      View Details <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
+          )}
 
-      {/* Alert Detail Modal */}
-      {showModal && (
-        <AlertDetailModal 
-          alert={selectedAlert} 
-          onClose={closeModal} 
-        />
-      )}
+          {/* Alert Detail Modal */}
+          {showModal && (
+            <AlertDetailModal 
+              alert={selectedAlert} 
+              onClose={closeModal} 
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 }

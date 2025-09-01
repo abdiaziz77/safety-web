@@ -78,19 +78,19 @@ function About() {
       icon: MessageSquare,
       title: 'Community Chat',
       description: 'Real-time messaging between neighbors and authorities for coordinated safety efforts.',
-      image: 'https://images.unsplash.com/photo-1577563908411-5077b6dc7624?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+      image: '/src/assets/image/community chat.avif'
     },
     {
       icon: Map,
       title: 'Interactive Safety Map',
       description: 'Visualize incidents, safe zones, and resources in your community in real-time.',
-      image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+      image: '/src/assets/image/safety map.webp'
     },
     {
       icon: BookOpen,
       title: 'Safety Resources Hub',
       description: 'Access comprehensive guides, tips, and educational materials for all safety scenarios.',
-      image: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+      image: '/src/assets/image/hub.avif'
     }
   ];
 
@@ -300,7 +300,7 @@ function About() {
             
             <div className="bg-white rounded-xl p-6 border border-gray-200">
               <img 
-                src="https://images.unsplash.com/photo-1577563908411-5077b6dc7624?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
+                src="/src/assets/image/report.jpeg" 
                 alt="Incident reporting interface"
                 className="w-full h-64 object-cover rounded-lg"
               />
@@ -367,13 +367,13 @@ function About() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 bg-blue-600">
+      <section className="py-16 bg-blue-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-12 border border-white/20">
-            <h2 className="text-3xl font-bold text-white mb-4">
+          <div className="bg-black/10 backdrop-blur-sm rounded-2xl p-12 border border-black/20">
+            <h2 className="text-3xl font-bold text-black mb-4">
               Join Our Safety Network
             </h2>
-            <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+            <p className="text-xl text-black mb-8 max-w-2xl mx-auto">
               Become part of a growing community dedicated to making neighborhoods safer for everyone.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -385,7 +385,7 @@ function About() {
               </Link>
               <Link
                 to="/about"
-                className="px-8 py-4 bg-transparent border-2 border-white hover:bg-white/10 text-white font-semibold rounded-lg transition-colors"
+                className="px-8 py-4 bg-transparent border-2 border-black hover:bg-white/10 text-black font-semibold rounded-lg transition-colors"
               >
                 Learn More
               </Link>

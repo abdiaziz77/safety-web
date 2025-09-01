@@ -1,1 +1,57 @@
 @import "tailwindcss";
+
+/* Ensure main content takes full width on mobile */
+.main-content {
+  width: 100%;
+  margin-left: 0;
+  transition: margin-left 0.3s ease;
+}
+
+/* Adjust for desktop sidebar */
+@media (min-width: 768px) {
+  .main-content {
+    margin-left: 64px; /* Width of collapsed sidebar */
+  }
+  
+  .sidebar-expanded .main-content {
+    margin-left: 256px; /* Width of expanded sidebar */
+  }
+}
+
+/* Ensure navbar stays at top */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  z-index: 1000;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Global styles for mobile responsiveness */
+@media (max-width: 767px) {
+  /* Prevent horizontal scrolling */
+  body {
+    overflow-x: hidden;
+  }
+  
+  /* Ensure main content is not obscured by sidebar */
+  main {
+    width: 100% !important;
+    margin-left: 0 !important;
+  }
+}
+
+/* Smooth transitions for sidebar and main content */
+main {
+  transition: margin-left 0.3s ease;
+}
+
+/* Ensure proper spacing on all devices */
+@media (min-width: 768px) {
+  main {
+    margin-top: 0;
+  }
+}

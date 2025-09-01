@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, session
 from datetime import datetime
 from models import Report, ReportMedia, User, db
-from utils import admin_required, login_required
+from utils import admin_required, login_required, notify_new_report, notify_report_status_update
 import uuid
 import os
 from werkzeug.utils import secure_filename
@@ -46,6 +46,9 @@ def create_report():
         
         db.session.add(report)
         db.session.commit()
+        
+        # ✅ Notify admins about new report
+        notify_new_report(report)
         
         return jsonify(report.to_dict()), 201
     except Exception as e:
@@ -120,6 +123,7 @@ def update_report(report_id):
             return jsonify({"error": "Report not found"}), 404
         
         data = request.get_json()
+        old_status = report.status  # Store old status for notification
         
         # Update status if provided
         if 'status' in data:
@@ -134,6 +138,11 @@ def update_report(report_id):
             report.admin_notes = data['admin_notes']
         
         db.session.commit()
+        
+        # ✅ Notify user about status change if updated
+        if 'status' in data and data['status'] != old_status:
+            notify_report_status_update(report, old_status)
+        
         return jsonify(report.to_dict()), 200
     except Exception as e:
         db.session.rollback()
@@ -170,9 +179,13 @@ def update_report_status(report_id):
         if new_status not in valid_statuses:
             return jsonify({"error": "Invalid status"}), 400
         
+        old_status = report.status  # Store old status for notification
         report.status = new_status
         report.admin_id = session.get('admin_user_id')  # Use admin_user_id
         db.session.commit()
+        
+        # ✅ Notify user about status change
+        notify_report_status_update(report, old_status)
         
         return jsonify(report.to_dict()), 200
     except Exception as e:

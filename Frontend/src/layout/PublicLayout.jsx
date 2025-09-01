@@ -1,15 +1,21 @@
 // src/layout/PublicLayout.jsx
-import React from 'react';
-import { Outlet } from 'react-router-dom';
-import Navbar from '../components/Navbar';
+import React from "react";
+import { Outlet } from "react-router-dom";
+import Footer from "../components/Footer";
 
 const PublicLayout = () => {
   return (
-    <div>
-      {/* You can add a public header or nav here if needed */}
+    <div className="flex flex-col min-h-screen">
+      {/* Public Navbar */}
       
-      <Outlet />
-      {/* You can add a footer here if needed */}
+
+      {/* Main Page Content */}
+      <main className="flex-grow">
+        <Outlet />
+      </main>
+
+      {/* Footer stays at the bottom */}
+      <Footer />
     </div>
   );
 };

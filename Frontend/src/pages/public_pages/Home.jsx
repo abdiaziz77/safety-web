@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from "react-router-dom";
 import { 
   Security, Groups, LocationOn, Phone, Notifications, Chat, 
   BarChart, CheckCircle, EmojiEvents, Schedule, Favorite, Star,
@@ -53,46 +54,46 @@ const Home = () => {
       icon: CrisisAlert,
       title: "Real-time Emergency Alerts",
       description: "Instant notifications for emergencies in your area with precise location details and severity levels.",
-      image: "https://images.unsplash.com/photo-1611095971117-9c1c8a0c6e7b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"
+      image: "/src/assets/image/amber-alert-mobile-phone.png"
     },
     {
       icon: Map,
       title: "Live Community Map",
       description: "Interactive map showing active incidents, safe zones, and emergency resources in real-time.",
-      image: "https://images.unsplash.com/photo-1586486851374-829b077e3b83?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"
+      image: "/src/assets/image/live community map.jpg"
     },
     {
       icon: Groups,
       title: "Community Watch",
       description: "Connect with neighbors and local authorities to keep your community safe together.",
-      image: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"
+      image: "/src/assets/image/community watch.jpg"
     },
     {
       icon: Analytics,
       title: "Safety Analytics",
       description: "Comprehensive reports and insights about safety trends in your neighborhood.",
-      image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"
+      image: "/src/assets/image/safery analytics.jpg"
     }
   ];
 
   const testimonials = [
     {
-      name: "Sarah Johnson",
+      name: "Sarah Aden",
       role: "Community Leader",
       content: "SafeZone101 transformed our neighborhood's safety. The real-time alerts have prevented several emergencies.",
-      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80"
+      avatar: "/src/assets/image/iqro.jpeg"
     },
     {
-      name: "Officer Mike Chen",
+      name: "Officer Abdinasir Mohamud",
       role: "Local Police Department",
       content: "The coordination tools have reduced response times by 40%. A game-changer for community policing.",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80"
+      avatar: "/src/assets/image/nin.jpg"
     },
     {
-      name: "Dr. Emily Rodriguez",
+      name: "Dr. Abdihafit Noor",
       role: "Emergency Physician",
       content: "Having medical alerts come through SafeZone101 helps us prepare better for incoming emergencies.",
-      avatar: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80"
+      avatar: "/src/assets/image/nin2.jpeg"
     }
   ];
 
@@ -183,19 +184,19 @@ const Home = () => {
       title: "Riverside Heights: 60% Crime Reduction",
       description: "After implementing SafeZone101, this community of 2,500 residents saw a dramatic decrease in property crime.",
       metrics: ["60% reduction in break-ins", "40% faster police response", "95% resident satisfaction"],
-      image: "https://images.unsplash.com/photo-1570129477492-45c003edd2be?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"
+      image: "/src/assets/image/house.avif"
     },
     {
       title: "Downtown Business District: Zero Lost Time",
       description: "Emergency coordination helped 50+ businesses maintain operations during a major infrastructure incident.",
       metrics: ["Zero business closures", "100% employee safety", "2-hour full recovery"],
-      image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"
+      image: "/src/assets/image/business.avif"
     },
     {
       title: "Maplewood School District: Perfect Safety Record",
       description: "Multi-school implementation resulted in seamless emergency drills and improved parent communication.",
       metrics: ["12 schools connected", "8,000+ students protected", "100% drill success rate"],
-      image: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"
+      image: "/src/assets/image/hero.avif"
     }
   ];
 
@@ -203,11 +204,11 @@ const Home = () => {
     <div className="min-h-screen bg-background text-foreground">
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-900 to-blue-700 opacity-95" />
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-900 to-blue-300 opacity-95" />
         <div 
           className="absolute inset-0 bg-cover bg-center opacity-10"
           style={{
-            backgroundImage: "url('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80')"
+            backgroundImage: "url('/src/assets/image/hero-emergency.jpg')"
           }}
         />
         
@@ -230,9 +231,12 @@ const Home = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
-            <button className="bg-white text-blue-700 px-8 py-4 rounded-full font-semibold text-lg hover:bg-blue-50 transition-all shadow-lg flex items-center gap-2">
-              Get Started <ArrowForward className="h-5 w-5" />
-            </button>
+            <Link
+  to="/signup"
+  className="bg-white text-blue-700 px-8 py-4 rounded-full font-semibold text-lg hover:bg-blue-50 transition-all shadow-lg flex items-center gap-2"
+>
+  Get Started <ArrowForward className="h-5 w-5" />
+</Link>
             <button className="border-2 border-white text-white px-8 py-4 rounded-full font-semibold text-lg hover:bg-white/10 transition-all flex items-center gap-2">
               <PlayArrow className="h-5 w-5" /> Watch Demo
             </button>
@@ -301,7 +305,7 @@ const Home = () => {
 
           <div className="relative bg-white rounded-3xl shadow-xl p-8 lg:p-12">
             <img
-              src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80"
+              src="/src/assets/image/see action.avif"
               alt="SafeZone101 Dashboard"
               className="w-full h-96 lg:h-[500px] object-cover rounded-2xl shadow-md"
             />
@@ -703,7 +707,7 @@ const Home = () => {
             <div className="relative">
               <div className="relative z-10">
                 <img
-                  src="https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+                  src="/src/assets/image/take safety everywhere.avif"
                   alt="SafeZone101 Mobile App"
                   className="w-full max-w-md mx-auto rounded-3xl shadow-md"
                 />
@@ -767,7 +771,7 @@ const Home = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
+      <section className="py-16  bg-blue-100 text-black">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <h2 className="text-4xl font-bold mb-6">Ready to Make Your Community Safer?</h2>
           <p className="text-xl mb-8 max-w-2xl mx-auto opacity-90">
@@ -778,12 +782,12 @@ const Home = () => {
             <button className="bg-white text-blue-700 px-8 py-4 rounded-full font-semibold text-lg hover:bg-gray-100 transition-all shadow-lg">
               Start Free Trial
             </button>
-            <button className="border-2 border-white text-white px-8 py-4 rounded-full font-semibold text-lg hover:bg-white/10 transition-all">
+            <button className="border-2 border-white text-black px-8 py-4 rounded-full font-semibold text-lg hover:bg-white/10 transition-all">
               Schedule Demo
             </button>
           </div>
 
-          <div className="text-sm text-white/80">
+          <div className="text-sm text-black/80">
             No credit card required • 14-day free trial • Cancel anytime
           </div>
         </div>

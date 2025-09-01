@@ -26,7 +26,9 @@ import {
   DialogTitle,
   CircularProgress,
   Snackbar,
-  Alert
+  Alert,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import {
   Visibility,
@@ -60,6 +62,9 @@ const ReportsList = () => {
   const [reportToDelete, setReportToDelete] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const navigate = useNavigate();
+  
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   useEffect(() => {
     fetchReports();
@@ -149,21 +154,21 @@ const ReportsList = () => {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" fontWeight="bold">
+    <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} flexDirection={{ xs: 'column', sm: 'row' }} gap={2}>
+        <Typography variant="h4" fontWeight="bold" sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }}>
           Reports Management
         </Typography>
         <Box>
           <Tooltip title="Refresh">
-            <IconButton onClick={fetchReports}>
+            <IconButton onClick={fetchReports} size={isMobile ? "small" : "medium"}>
               <Refresh />
             </IconButton>
           </Tooltip>
         </Box>
       </Box>
 
-      <Box display="flex" gap={2} mb={3} flexWrap="wrap">
+      <Box display="flex" gap={2} mb={3} flexWrap="wrap" flexDirection={{ xs: 'column', sm: 'row' }}>
         <TextField
           variant="outlined"
           size="small"
@@ -173,10 +178,10 @@ const ReportsList = () => {
           }}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          sx={{ minWidth: 250 }}
+          sx={{ minWidth: { xs: '100%', sm: 250 } }}
         />
 
-        <FormControl size="small" sx={{ minWidth: 180 }}>
+        <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 180 } }}>
           <InputLabel>Status</InputLabel>
           <Select
             value={statusFilter}
@@ -194,22 +199,23 @@ const ReportsList = () => {
             variant="outlined"
             startIcon={<Clear />}
             onClick={() => setSearchTerm('')}
+            sx={{ width: { xs: '100%', sm: 'auto' } }}
           >
             Clear Search
           </Button>
         )}
       </Box>
 
-      <Paper elevation={3}>
-        <TableContainer>
-          <Table>
+      <Paper elevation={3} sx={{ width: '100%', overflow: 'hidden' }}>
+        <TableContainer sx={{ maxHeight: { xs: 500, sm: 'none' }, overflowX: 'auto' }}>
+          <Table stickyHeader={isMobile} sx={{ minWidth: isMobile ? 800 : 'auto' }}>
             <TableHead>
               <TableRow>
-                <TableCell>ID</TableCell>
+                <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>ID</TableCell>
                 <TableCell>Title</TableCell>
-                <TableCell>User</TableCell>
+                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>User</TableCell>
                 <TableCell>Type</TableCell>
-                <TableCell>Date</TableCell>
+                <TableCell sx={{ display: { xs: 'none', lg: 'table-cell' } }}>Date</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Actions</TableCell>
               </TableRow>
@@ -218,13 +224,28 @@ const ReportsList = () => {
               {filteredReports.length > 0 ? (
                 filteredReports.map((report) => (
                   <TableRow key={report.id}>
-                    <TableCell>#{report.id?.slice(0, 8) || 'N/A'}</TableCell>
-                    <TableCell>{report.title || 'No title'}</TableCell>
-                    <TableCell>{report.user_email || 'Anonymous'}</TableCell>
-                    <TableCell>
-                      <Chip label={report.report_type || 'Unknown'} size="small" />
+                    <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
+                      #{report.id?.slice(0, 8) || 'N/A'}
+                    </TableCell>
+                    <TableCell sx={{ maxWidth: { xs: 120, sm: 'none' } }}>
+                      <Typography noWrap sx={{ maxWidth: { xs: 120, sm: 'none' } }}>
+                        {report.title || 'No title'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                      {report.user_email || 'Anonymous'}
                     </TableCell>
                     <TableCell>
+                      <Chip 
+                        label={report.report_type || 'Unknown'} 
+                        size="small" 
+                        sx={{ 
+                          fontSize: { xs: '0.7rem', sm: 'inherit' },
+                          maxWidth: { xs: 80, sm: 'none' }
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ display: { xs: 'none', lg: 'table-cell' } }}>
                       {report.created_at ? new Date(report.created_at).toLocaleDateString() : '-'}
                     </TableCell>
                     <TableCell>
@@ -232,10 +253,19 @@ const ReportsList = () => {
                         value={report.status || 'Pending'}
                         onChange={(e) => handleStatusChange(report.id, e.target.value)}
                         size="small"
-                        sx={{ minWidth: 120 }}
+                        sx={{ 
+                          minWidth: { xs: 90, sm: 120 },
+                          fontSize: { xs: '0.7rem', sm: 'inherit' }
+                        }}
                       >
                         {statusOptions.filter(s => s !== 'All').map(status => (
-                          <MenuItem key={status} value={status}>{status}</MenuItem>
+                          <MenuItem 
+                            key={status} 
+                            value={status}
+                            sx={{ fontSize: { xs: '0.7rem', sm: 'inherit' } }}
+                          >
+                            {status}
+                          </MenuItem>
                         ))}
                       </Select>
                     </TableCell>
@@ -246,7 +276,7 @@ const ReportsList = () => {
                             size="small"
                             onClick={() => navigate(`/admin/dashboard/reports/${report.id}`)}
                           >
-                            <Visibility color="primary" />
+                            <Visibility color="primary" fontSize={isMobile ? "small" : "medium"} />
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="Delete">
@@ -254,7 +284,7 @@ const ReportsList = () => {
                             size="small"
                             onClick={() => handleDeleteClick(report)}
                           >
-                            <Delete color="error" />
+                            <Delete color="error" fontSize={isMobile ? "small" : "medium"} />
                           </IconButton>
                         </Tooltip>
                       </Box>
@@ -278,6 +308,7 @@ const ReportsList = () => {
       <Dialog
         open={openDeleteDialog}
         onClose={() => setOpenDeleteDialog(false)}
+        fullScreen={isMobile}
       >
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
@@ -301,6 +332,7 @@ const ReportsList = () => {
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
         <Alert
           onClose={handleCloseSnackbar}

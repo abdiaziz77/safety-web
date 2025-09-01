@@ -8,19 +8,19 @@ const EmergencyPage = () => {
       icon: Bell,
       title: 'Instant Emergency Alerts',
       description: 'Get real-time notifications about emergencies around you with precise locations.',
-      image: 'https://images.unsplash.com/photo-1556740758-90de374c12ad?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80'
+      image: '/src/assets/image/insert.avif'
     },
     {
       icon: MapPin,
       title: 'Interactive Community Map',
       description: 'Visualize incidents, safe zones, and resources in your area in real-time.',
-      image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80'
+      image: '/src/assets/image/interactive.jpg'
     },
     {
       icon: Users,
       title: 'Community Support Network',
       description: 'Connect neighbors, volunteers, and authorities to coordinate emergency responses.',
-      image: 'https://images.unsplash.com/photo-1549924231-f129b911e442?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80'
+      image: '/src/assets/image/net.png'
     }
   ];
 
@@ -29,19 +29,19 @@ const EmergencyPage = () => {
       icon: Heart,
       title: 'Stay Calm',
       description: 'Keep calm and follow emergency protocols for your safety and others.',
-      image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80'
+      image: '/src/assets/image/stay.jpeg'
     },
     {
       icon: CheckCircle,
       title: 'Help Others',
       description: 'Assist neighbors and vulnerable individuals during emergencies.',
-      image: 'https://images.unsplash.com/photo-1583512603806-077998240c7a?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80'
+      image: '/src/assets/image/help others.jpeg'
     },
     {
       icon: Shield,
       title: 'Keep Updated',
       description: 'Stay informed with alerts and news from trusted sources.',
-      image: 'https://images.unsplash.com/photo-1589652717521-10c0d092dea9?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80'
+      image: '/src/assets/image/keep updated.png'
     }
   ];
 
@@ -83,7 +83,7 @@ const EmergencyPage = () => {
       steps: [
         'Activate fire alarm if available',
         'Evacuate immediately if fire is large or spreading',
-        'Use fire extinguisher only on small, contained fires',
+        'Use fire extinguifier only on small, contained fires',
         'Stay low to avoid smoke inhalation'
       ]
     },
@@ -145,7 +145,7 @@ const EmergencyPage = () => {
                   <AlertTriangle className="h-5 w-5" /> Report Emergency
                 </button>
                 <button className="border-2 border-blue-600 text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition flex items-center gap-2">
-                  <Phone className="h-5 w-5" /> Call 911
+                  <Phone className="h-5 w-5" /> Call 101
                 </button>
               </motion.div>
             </div>
@@ -156,7 +156,7 @@ const EmergencyPage = () => {
               className="rounded-xl overflow-hidden shadow-lg"
             >
               <img 
-                src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80" 
+                src="/src/assets/image/police.webp" 
                 alt="Emergency response team" 
                 className="w-full h-96 object-cover" 
               />
@@ -304,7 +304,7 @@ const EmergencyPage = () => {
       </section>
 
       {/* Call to Action */}
-      <section className="py-16 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-center">
+      <section className="py-16 bg-blue-100 text-black text-center">
         <div className="max-w-7xl mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -317,7 +317,7 @@ const EmergencyPage = () => {
               <button className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition shadow-lg">
                 Join Now
               </button>
-              <button className="border-2 border-white text-white px-6 py-3 rounded-lg font-semibold hover:bg-white/10 transition">
+              <button className="border-2 border-black text-black px-6 py-3 rounded-lg font-semibold hover:bg-white/10 transition">
                 Learn More
               </button>
             </div>

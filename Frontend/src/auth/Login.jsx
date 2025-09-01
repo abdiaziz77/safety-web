@@ -194,7 +194,7 @@ const Login = () => {
               />
               <Button
                 component={Link}
-                to="/auth/forgot-password"
+                to="/forgotpassword"
                 size="small"
                 sx={{ textTransform: "none" }}
               >
@@ -220,7 +220,7 @@ const Login = () => {
             {/* Sign Up Link */}
             <Typography variant="body2" sx={{ textAlign: "center", mb: 2 }}>
               Don't have an account?{" "}
-              <Link to="/auth/register" style={{ color: "#1976d2" }}>
+              <Link to="/signup" style={{ color: "#1976d2" }}>
                 Sign up
               </Link>
             </Typography>
@@ -228,7 +228,7 @@ const Login = () => {
             {/* Emergency Access */}
             <Button
               component={Link}
-              to="/report"
+              to="#"
               fullWidth
               variant="outlined"
               startIcon={<Shield />}

@@ -162,7 +162,7 @@ const Help = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6">
+    <div className="min-h-screen bg-blue-100 py-8 px-4 sm:px-6">
       <div className="max-w-6xl mx-auto">
         {/* Hero Section */}
         <Paper elevation={3} className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-8 rounded-t-lg">

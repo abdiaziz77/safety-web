@@ -1,286 +1,203 @@
-# routes/notifications.py
-from flask import Blueprint, request, jsonify, session
-from utils import login_required, admin_required
-from models import db, Notification, NotificationType, User, Report, Chat, ChatMessage
-from datetime import datetime, timedelta
+from flask import Blueprint, request, jsonify
+from models import db, Notification, NotificationType
+from utils import (
+    login_required,
+    admin_required,
+    get_current_user_id,
+    get_unread_count,
+    get_user_notifications,
+    mark_notification_as_read,
+    mark_all_notifications_read,
+    delete_notification,
+    is_admin
+)
 
 notifications_bp = Blueprint('notifications', __name__)
 
-# ------------------ USER NOTIFICATIONS ------------------
-@notifications_bp.route('/user', methods=['GET'])
+# ---------------- USER ROUTES ---------------- #
+
+# Get user notifications
+@notifications_bp.route('/', methods=['GET'])
 @login_required
-def get_user_notifications():
-    try:
-        user_id = session.get("user_id")
-        if not user_id:
-            return jsonify({'error': 'User not logged in'}), 401
+def get_notifications():
+    user_id = get_current_user_id()
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+    unread_only = request.args.get('unread_only', 'false').lower() == 'true'
 
-        page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 20, type=int)
-        unread_only = request.args.get('unread_only', 'false').lower() == 'true'
-        
-        query = Notification.query.filter_by(user_id=user_id)
-        if unread_only:
-            query = query.filter_by(is_read=False)
-        
-        notifications = query.order_by(
-            Notification.is_urgent.desc(),
-            Notification.created_at.desc()
-        ).paginate(page=page, per_page=per_page, error_out=False)
-        
-        return jsonify({
-            'notifications': [n.to_dict() for n in notifications.items],
-            'total': notifications.total,
-            'pages': notifications.pages,
-            'current_page': page,
-            'unread_count': Notification.query.filter_by(
-                user_id=user_id,
-                is_read=False
+    query = Notification.query.filter_by(user_id=user_id)
+    if unread_only:
+        query = query.filter_by(is_read=False)
+    
+    notifications = query.order_by(Notification.created_at.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+
+    return jsonify({
+        'notifications': [n.to_dict() for n in notifications.items],
+        'total': notifications.total,
+        'unread_count': get_unread_count(user_id),
+        'pages': notifications.pages,
+        'current_page': page
+    })
+
+
+# Get user notification statistics
+@notifications_bp.route('/stats', methods=['GET'])
+@login_required
+def get_notification_stats():
+    user_id = get_current_user_id()
+    
+    stats = {
+        'total': Notification.query.filter_by(user_id=user_id).count(),
+        'unread': get_unread_count(user_id),
+        'urgent': Notification.query.filter_by(user_id=user_id, is_urgent=True, is_read=False).count(),
+        'by_type': {
+            'report_status_update': Notification.query.filter_by(
+                user_id=user_id, type=NotificationType.REPORT_STATUS_UPDATE
+            ).count(),
+            'admin_alert': Notification.query.filter_by(
+                user_id=user_id, type=NotificationType.ADMIN_ALERT
+            ).count(),
+            'new_report': Notification.query.filter_by(
+                user_id=user_id, type=NotificationType.NEW_REPORT
+            ).count(),
+            'new_message': Notification.query.filter_by(
+                user_id=user_id, type=NotificationType.NEW_MESSAGE
+            ).count(),
+            'emergency': Notification.query.filter_by(
+                user_id=user_id, type=NotificationType.EMERGENCY
             ).count()
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        }
+    }
+    
+    return jsonify(stats)
 
 
-# ------------------ ADMIN NOTIFICATIONS ------------------
+# Mark notification as read
+@notifications_bp.route('/<notification_id>/read', methods=['PUT'])
+@login_required
+def mark_as_read(notification_id):
+    user_id = get_current_user_id()
+    if mark_notification_as_read(notification_id, user_id):
+        return jsonify({'message': 'Notification marked as read'})
+    return jsonify({'error': 'Notification not found'}), 404
+
+
+# Mark all notifications as read
+@notifications_bp.route('/read-all', methods=['PUT'])
+@login_required
+def mark_all_as_read():
+    user_id = get_current_user_id()
+    mark_all_notifications_read(user_id)
+    return jsonify({'message': 'All notifications marked as read'})
+
+
+# Delete notification
+@notifications_bp.route('/<notification_id>', methods=['DELETE'])
+@login_required
+def delete_notification_route(notification_id):
+    user_id = get_current_user_id()
+    if delete_notification(notification_id, user_id):
+        return jsonify({'message': 'Notification deleted'})
+    return jsonify({'error': 'Notification not found'}), 404
+
+
+# Get unread notifications count
+@notifications_bp.route('/unread-count', methods=['GET'])
+@login_required
+def get_unread_count_route():
+    user_id = get_current_user_id()
+    return jsonify({'unread_count': get_unread_count(user_id)})
+
+
+# Get recent notifications
+@notifications_bp.route('/recent', methods=['GET'])
+@login_required
+def get_recent_notifications():
+    user_id = get_current_user_id()
+    limit = request.args.get('limit', 10, type=int)
+    unread_only = request.args.get('unread_only', 'false').lower() == 'true'
+    
+    notifications = get_user_notifications(user_id, unread_only, limit)
+    
+    return jsonify({
+        'notifications': [n.to_dict() for n in notifications],
+        'unread_count': get_unread_count(user_id)
+    })
+
+
+# Delete all read notifications
+@notifications_bp.route('/delete-read', methods=['DELETE'])
+@login_required
+def delete_all_read():
+    user_id = get_current_user_id()
+    Notification.query.filter_by(user_id=user_id, is_read=True).delete()
+    db.session.commit()
+    return jsonify({'message': 'All read notifications deleted'})
+
+
+# ---------------- ADMIN ROUTES ---------------- #
+
+# Get ALL system notifications (admin only)
 @notifications_bp.route('/admin', methods=['GET'])
 @admin_required
 def get_admin_notifications():
-    try:
-        page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 20, type=int)
-        notification_type = request.args.get('type')
-        
-        query = Notification.query
-        if notification_type:
-            try:
-                nt = NotificationType(notification_type)
-                query = query.filter_by(type=nt)
-            except ValueError:
-                return jsonify({'error': 'Invalid notification type'}), 400
-        
-        notifications = query.order_by(
-            Notification.is_urgent.desc(),
-            Notification.created_at.desc()
-        ).paginate(page=page, per_page=per_page, error_out=False)
-        
-        return jsonify({
-            'notifications': [n.to_dict() for n in notifications.items],
-            'total': notifications.total,
-            'pages': notifications.pages,
-            'current_page': page
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+    unread_only = request.args.get('unread_only', 'false').lower() == 'true'
+
+    query = Notification.query
+    if unread_only:
+        query = query.filter_by(is_read=False)
+
+    notifications = query.order_by(Notification.created_at.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+
+    return jsonify({
+        'notifications': [n.to_dict() for n in notifications.items],
+        'total': notifications.total,
+        'pages': notifications.pages,
+        'current_page': page
+    })
 
 
-# ------------------ MARK NOTIFICATIONS ------------------
-@notifications_bp.route('/<notification_id>/read', methods=['POST'])
-@login_required
-def mark_notification_read(notification_id):
-    try:
-        user_id = session.get("user_id")
-        user = User.query.get(user_id)
+# Get admin notification statistics
+@notifications_bp.route('/admin/stats', methods=['GET'])
+@admin_required
+def get_admin_stats():
+    stats = {
+        'total': Notification.query.count(),
+        'unread': Notification.query.filter_by(is_read=False).count(),
+        'urgent': Notification.query.filter_by(is_urgent=True, is_read=False).count(),
+        'by_type': {
+            nt.value: Notification.query.filter_by(type=nt).count()
+            for nt in NotificationType
+        }
+    }
+    return jsonify(stats)
 
-        notification = Notification.query.get_or_404(notification_id)
-        if notification.user_id != user_id and not (user and user.is_admin):
-            return jsonify({'error': 'Unauthorized'}), 403
-        
+
+# Mark admin notification as read
+@notifications_bp.route('/admin/<notification_id>/read', methods=['PUT'])
+@admin_required
+def mark_admin_notification_read(notification_id):
+    notification = Notification.query.filter_by(id=notification_id).first()
+    if notification:
         notification.is_read = True
         db.session.commit()
-        
-        return jsonify({'success': True, 'notification': notification.to_dict()})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'message': 'Notification marked as read'})
+    return jsonify({'error': 'Notification not found'}), 404
 
 
-@notifications_bp.route('/read-all', methods=['POST'])
-@login_required
-def mark_all_notifications_read():
-    try:
-        user_id = session.get("user_id")
-        Notification.query.filter_by(user_id=user_id, is_read=False).update(
-            {'is_read': True},
-            synchronize_session=False
-        )
-        db.session.commit()
-        return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-
-# ------------------ SEND ADMIN ALERT ------------------
-@notifications_bp.route('/admin/send-alert', methods=['POST'])
+# Delete admin notification
+@notifications_bp.route('/admin/<notification_id>', methods=['DELETE'])
 @admin_required
-def send_admin_alert():
-    try:
-        data = request.get_json()
-        title = data.get('title')
-        message = data.get('message')
-        is_urgent = data.get('is_urgent', False)
-        user_ids = data.get('user_ids', [])  # Empty = all users
-        
-        if not title or not message:
-            return jsonify({'error': 'Title and message are required'}), 400
-        
-        if user_ids:
-            users = User.query.filter(User.id.in_(user_ids), User.is_admin == False).all()
-        else:
-            users = User.query.filter_by(is_admin=False).all()
-        
-        notifications_created = 0
-        for target in users:
-            notification = Notification(
-                user_id=target.id,
-                type=NotificationType.ADMIN_ALERT,
-                title=title,
-                message=message,
-                is_urgent=is_urgent,
-                action_url='/alerts',
-                action_text='View Alerts',
-                created_at=datetime.utcnow()
-            )
-            db.session.add(notification)
-            notifications_created += 1
-        
+def delete_admin_notification(notification_id):
+    notification = Notification.query.filter_by(id=notification_id).first()
+    if notification:
+        db.session.delete(notification)
         db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'message': f'Alert sent to {notifications_created} users',
-            'notifications_sent': notifications_created
-        })
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
-
-
-# ------------------ HELPERS: CREATE NOTIFICATIONS ------------------
-def create_report_status_notification(report_id, old_status, new_status, admin_id=None):
-    try:
-        report = Report.query.get_or_404(report_id)
-        notification = Notification(
-            user_id=report.user_id,
-            type=NotificationType.REPORT_STATUS_UPDATE,
-            title='Report Status Updated',
-            message=f"Your report \"{report.title}\" status changed from {old_status} to {new_status}",
-            report_id=report_id,
-            action_url=f'/reports/{report_id}',
-            action_text='View Report',
-            related_user_id=admin_id,
-            created_at=datetime.utcnow()
-        )
-        db.session.add(notification)
-        db.session.commit()
-        return True
-    except Exception as e:
-        print(f"Error creating report status notification: {e}")
-        db.session.rollback()
-        return False
-
-
-def create_new_report_notification(report_id):
-    try:
-        report = Report.query.get_or_404(report_id)
-        admins = User.query.filter_by(is_admin=True).all()
-        
-        for admin in admins:
-            notification = Notification(
-                user_id=admin.id,
-                type=NotificationType.NEW_REPORT,
-                title='New Report Submitted',
-                message=f'New report \"{report.title}\" submitted by {report.author.first_name} {report.author.last_name}',
-                report_id=report_id,
-                action_url=f'/admin/reports/{report_id}',
-                action_text='Review Report',
-                related_user_id=report.user_id,
-                is_urgent=(report.urgency in ['high', 'critical']),
-                created_at=datetime.utcnow()
-            )
-            db.session.add(notification)
-        
-        db.session.commit()
-        return True
-    except Exception as e:
-        print(f"Error creating new report notification: {e}")
-        db.session.rollback()
-        return False
-
-
-def create_new_user_notification(user_id):
-    try:
-        user = User.query.get_or_404(user_id)
-        admins = User.query.filter_by(is_admin=True).all()
-        
-        for admin in admins:
-            notification = Notification(
-                user_id=admin.id,
-                type=NotificationType.NEW_USER,
-                title='New User Registered',
-                message=f'New user registered: {user.first_name} {user.last_name} ({user.email})',
-                related_user_id=user_id,
-                action_url=f'/admin/users/{user_id}',
-                action_text='View User',
-                created_at=datetime.utcnow()
-            )
-            db.session.add(notification)
-        
-        db.session.commit()
-        return True
-    except Exception as e:
-        print(f"Error creating new user notification: {e}")
-        db.session.rollback()
-        return False
-
-
-def create_chat_message_notification(chat_id, message_id, sender_id):
-    try:
-        chat = Chat.query.get_or_404(chat_id)
-        message = ChatMessage.query.get_or_404(message_id)
-        
-        recipient_id = chat.admin_id if sender_id == chat.user_id else chat.user_id
-        if recipient_id:
-            notification = Notification(
-                user_id=recipient_id,
-                type=NotificationType.CHAT_MESSAGE,
-                title='New Message',
-                message=f'New message in chat: {message.content[:100]}...',
-                chat_id=chat_id,
-                action_url=f'/chat/{chat_id}',
-                action_text='Open Chat',
-                related_user_id=sender_id,
-                created_at=datetime.utcnow()
-            )
-            db.session.add(notification)
-            db.session.commit()
-            return True
-    except Exception as e:
-        print(f"Error creating chat message notification: {e}")
-        db.session.rollback()
-        return False
-
-
-# ------------------ NOTIFICATION STATS ------------------
-@notifications_bp.route('/stats', methods=['GET'])
-@admin_required
-def get_notification_stats():
-    try:
-        stats = {
-            'total': Notification.query.count(),
-            'unread': Notification.query.filter_by(is_read=False).count(),
-            'urgent': Notification.query.filter_by(is_urgent=True, is_read=False).count(),
-            'by_type': {}
-        }
-        
-        for notification_type in NotificationType:
-            count = Notification.query.filter_by(type=notification_type).count()
-            stats['by_type'][notification_type.value] = count
-        
-        week_ago = datetime.utcnow() - timedelta(days=7)
-        stats['recent'] = Notification.query.filter(
-            Notification.created_at >= week_ago
-        ).count()
-        
-        return jsonify(stats)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'message': 'Notification deleted'})
+    return jsonify({'error': 'Notification not found'}), 404

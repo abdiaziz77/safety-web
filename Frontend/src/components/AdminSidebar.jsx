@@ -1,3 +1,4 @@
+// src/components/AdminSidebar.jsx
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
@@ -10,13 +11,15 @@ import {
   Menu,
   ChevronLeft,
   MessageCircle,
-  Bell
+  Bell,
+  MessageSquare,
+  Mail
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 
-function AdminSidebar() {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+function AdminSidebar({ isCollapsed, setIsCollapsed }) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
   const location = useLocation();
   const { user } = useAuth();
   const currentPath = location.pathname;
@@ -29,11 +32,23 @@ function AdminSidebar() {
     const handleResize = () => {
       if (window.innerWidth < 768) {
         setIsCollapsed(true);
+      } else {
+        setIsCollapsed(false);
       }
     };
+    
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, [setIsCollapsed]);
+
+  useEffect(() => {
+    // Add a slight delay to trigger the animation
+    const timer = setTimeout(() => {
+      setIsVisible(true);
+    }, 50);
+    
+    return () => clearTimeout(timer);
   }, []);
 
   const isActive = (path) => currentPath === path;
@@ -50,49 +65,45 @@ function AdminSidebar() {
     { title: 'Manage Alerts', url: '/admin/dashboard/alerts', icon: AlertTriangle },
     { title: 'Analytics', url: '/admin/dashboard/analytics', icon: BarChart3 },
     { title: 'User Management', url: '/admin/dashboard/usermanagement', icon: Users },
-     { title: 'Messages', url: '/admin/dashboard/notification', icon: Bell },
-    { title: 'Settings', url: '/admin/dashboard/settings', icon: Settings },
-    { title: 'Chats', url: '/admin/dashboard/chats', icon: MessageCircle },
+    { title: 'Chats', url: '/admin/dashboard/chats', icon: MessageSquare }, 
+    { title: 'Message', url: '/admin/dashboard/messages', icon: Mail }, 
   ];
 
   return (
     <>
-      {/* Mobile toggle button */}
+      {/* Mobile toggle button - positioned below navbar */}
       <button
         onClick={() => setIsMobileOpen(!isMobileOpen)}
-        className="md:hidden fixed bottom-4 right-4 z-40 bg-white p-3 rounded-full shadow-lg border border-gray-200"
+        className="md:hidden fixed top-16 left-4 z-50 bg-white p-2 rounded-md shadow-lg border border-gray-200"
       >
-        {isMobileOpen ? <ChevronLeft className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        {isMobileOpen ? <ChevronLeft className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </button>
 
-      {/* Fixed Sidebar */}
+      {/* Sidebar */}
       <div
-        className={`
-          ${isCollapsed ? 'w-16' : 'w-64'}
-          bg-white border-r border-gray-200
-          transition-all duration-300 flex flex-col
-          fixed top-16 left-0 h-[calc(100vh-4rem)]
-          z-30
-          ${isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-        `}
+        className={`${
+          isMobileOpen ? 'w-64' : isCollapsed ? 'w-16' : 'w-64'
+        } bg-white border-r border-gray-400 transition-all duration-300 flex flex-col h-screen fixed top-0 left-0 z-40 py-5 mt-33 ${
+          isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        } transform ${
+          isVisible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
+        } transition-transform transition-opacity duration-500 ease-in-out`}
       >
-        {/* Header */}
-        <div className="p-4 border-b border-gray-200 pt-14">
-          <div className="flex items-center justify-between">
-            {!isCollapsed && (
-              <h2 className="text-lg font-semibold text-gray-800">Admin Panel</h2>
-            )}
-            <button
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className="h-8 w-8 p-1 rounded hover:bg-gray-100 hidden md:block"
-            >
-              <Menu className="h-4 w-4 text-gray-600" />
-            </button>
-          </div>
+        {/* Header inside sidebar */}
+        <div className="flex items-center justify-between px-4 mb-6">
+          {!isCollapsed && (
+            <h2 className="text-lg font-semibold text-gray-800">Admin Panel</h2>
+          )}
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="h-8 w-8 p-1 rounded hover:bg-gray-100 hidden md:block"
+          >
+            <Menu className="h-4 w-4 text-gray-600" />
+          </button>
         </div>
 
         {/* Navigation */}
-        <div className="flex-1 p-4 overflow-y-auto">
+        <div className="flex-1 px-4 overflow-y-auto">
           <nav className="space-y-2">
             {navItems.map((item) => (
               <NavLink
@@ -100,29 +111,15 @@ function AdminSidebar() {
                 to={item.url}
                 className={getNavClass(item.url)}
                 onClick={() => setIsMobileOpen(false)}
+                title={isCollapsed ? item.title : ''}
               >
                 <item.icon className="h-5 w-5 min-w-[20px]" />
-                {!isCollapsed && <span className="ml-3 truncate">{item.title}</span>}
+                {!isCollapsed && (
+                  <span className="ml-3 truncate">{item.title}</span>
+                )}
               </NavLink>
             ))}
           </nav>
-        </div>
-
-        {/* Role box */}
-        {!isCollapsed && (
-          <div className="p-4 border-t border-gray-200">
-            <div className="bg-gray-100 rounded-lg p-3">
-              <p className="text-sm font-medium text-gray-800">Role</p>
-              <p className="text-xs capitalize text-blue-600">
-                {user?.role}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Footer */}
-        <div className="p-3 text-xs text-gray-400 text-center border-t border-gray-200">
-          © {new Date().getFullYear()} Admin Portal
         </div>
       </div>
     </>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -16,7 +16,8 @@ import {
   Paper,
   Typography,
   Box,
-  Divider
+  Divider,
+  LinearProgress
 } from "@mui/material";
 import {
   Shield,
@@ -27,12 +28,59 @@ import {
   Badge,
   Email,
   Phone,
-  Lock
+  Lock,
+  CheckCircleOutline,
+  CancelOutlined
 } from "@mui/icons-material";
+
+// Password Requirement Component
+const PasswordRequirement = ({ met, text }) => (
+  <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+    {met ? (
+      <CheckCircleOutline sx={{ color: "success.main", fontSize: 18, mr: 1 }} />
+    ) : (
+      <CancelOutlined sx={{ color: "error.main", fontSize: 18, mr: 1 }} />
+    )}
+    <Typography variant="body2" color={met ? "success.main" : "text.secondary"}>
+      {text}
+    </Typography>
+  </Box>
+);
+
+// Password Strength Bar Component
+const PasswordStrengthBar = ({ strength }) => {
+  const strengthLabels = ["Very Weak", "Weak", "Fair", "Good", "Strong"];
+  const strengthColors = ["error.main", "error.main", "warning.main", "success.main", "success.main"];
+  
+  return (
+    <Box sx={{ width: "100%", mb: 2 }}>
+      <LinearProgress 
+        variant="determinate" 
+        value={strength * 25} 
+        sx={{ 
+          height: 6, 
+          borderRadius: 3, 
+          mb: 1,
+          backgroundColor: "grey.200",
+          "& .MuiLinearProgress-bar": {
+            backgroundColor: strengthColors[strength - 1],
+            borderRadius: 3,
+          }
+        }} 
+      />
+      <Typography variant="body2" color="text.secondary" align="right">
+        Strength: <Typography component="span" color={strengthColors[strength - 1]} fontWeight="bold">
+          {strengthLabels[strength - 1]}
+        </Typography>
+      </Typography>
+    </Box>
+  );
+};
 
 const SignUp = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState(0);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -43,6 +91,20 @@ const SignUp = () => {
     confirmPassword: "",
     agreeTerms: false
   });
+
+  // Calculate password strength
+  useEffect(() => {
+    let strength = 0;
+    
+    if (formData.password.length > 0) {
+      if (formData.password.length >= 8) strength++;
+      if (/[A-Z]/.test(formData.password)) strength++;
+      if (/[0-9]/.test(formData.password)) strength++;
+      if (/[^A-Za-z0-9]/.test(formData.password)) strength++;
+    }
+    
+    setPasswordStrength(strength);
+  }, [formData.password]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -68,6 +130,13 @@ const SignUp = () => {
       setIsLoading(false);
       return;
     }
+    
+    if (passwordStrength < 3) {
+      toast.error("Please choose a stronger password");
+      setIsLoading(false);
+      return;
+    }
+    
     if (!formData.agreeTerms) {
       toast.error("You must agree to the terms and conditions");
       setIsLoading(false);
@@ -92,20 +161,8 @@ const SignUp = () => {
      if (res.ok) {
   toast.success("Registration successful! Please login.");
 
-  // Send email notification
-  try {
-    await fetch(`http://127.0.0.1:5000/api/email/send`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        to: formData.email,
-        subject: "SafeZone101 Registration Successful",
-        message: "You are successfully registered to SafeZone101. Community SafetyHub."
-      }),
-    });
-  } catch (emailErr) {
-    console.error("Email sending failed:", emailErr);
-  }
+  
+ 
 
   // Clear form
   setFormData({
@@ -134,6 +191,12 @@ else {
       setIsLoading(false);
     }
   };
+
+  // Password requirements
+  const hasUpperCase = /[A-Z]/.test(formData.password);
+  const hasNumber = /[0-9]/.test(formData.password);
+  const hasSpecialChar = /[^A-Za-z0-9]/.test(formData.password);
+  const hasMinLength = formData.password.length >= 8;
 
   return (
     <Box
@@ -290,7 +353,7 @@ else {
               value={formData.password}
               onChange={handleChange}
               required
-              sx={{ mb: 2 }}
+              sx={{ mb: 1 }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -310,6 +373,20 @@ else {
               }}
             />
 
+            {/* Password Strength Indicator */}
+            {formData.password && (
+              <>
+                <PasswordStrengthBar strength={passwordStrength} />
+                
+                <Box sx={{ mb: 2 }}>
+                  <PasswordRequirement met={hasMinLength} text="At least 8 characters" />
+                  <PasswordRequirement met={hasUpperCase} text="At least one uppercase letter" />
+                  <PasswordRequirement met={hasNumber} text="At least one number" />
+                  <PasswordRequirement met={hasSpecialChar} text="At least one special character" />
+                </Box>
+              </>
+            )}
+
             {/* Confirm Password */}
             <TextField
               fullWidth
@@ -320,6 +397,8 @@ else {
               onChange={handleChange}
               required
               sx={{ mb: 2 }}
+              error={formData.confirmPassword !== "" && formData.password !== formData.confirmPassword}
+              helperText={formData.confirmPassword !== "" && formData.password !== formData.confirmPassword ? "Passwords do not match" : ""}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -360,7 +439,7 @@ else {
               fullWidth
               variant="contained"
               size="large"
-              disabled={isLoading}
+              disabled={isLoading || passwordStrength < 3}
               sx={{ py: 1.5 }}
             >
               {isLoading ? "Creating Account..." : "Create Account"}
@@ -372,7 +451,7 @@ else {
             {/* Login Link */}
             <Typography variant="body2" sx={{ textAlign: "center" }}>
               Already have an account?{" "}
-              <Link to="/auth/login" style={{ color: "#1976d2" }}>
+              <Link to="/login" style={{ color: "#1976d2" }}>
                 Sign in
               </Link>
             </Typography>

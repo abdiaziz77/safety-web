@@ -1,11 +1,19 @@
+import random
+from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify, session
+from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, User
-from utils import send_registration_email, login_required, admin_required
-from datetime import datetime
-from werkzeug.security import generate_password_hash
+from utils import (
+    send_registration_email,
+    send_otp_email,
+    login_required,
+    admin_required,
+    notify_new_user
+)
 
 auth_bp = Blueprint('auth', __name__)
 
+# ------------------ SIGNUP ------------------
 @auth_bp.route('/signup', methods=['POST'])
 def signup():
     data = request.json
@@ -30,10 +38,17 @@ def signup():
         db.session.add(user)
         db.session.commit()
 
+        # Send welcome email (non-blocking)
         try:
             send_registration_email(user.email, user.first_name)
         except Exception as e:
             print("Failed to send registration email:", e)
+
+        # ✅ Create NEW_USER notification for all admins
+        try:
+            notify_new_user(user)
+        except Exception as e:
+            print("Failed to create NEW_USER notification:", e)
 
         return jsonify({
             "message": "User registered successfully",
@@ -50,6 +65,7 @@ def signup():
         db.session.rollback()
         return jsonify({"message": str(e)}), 500
 
+# ------------------ LOGIN ------------------
 @auth_bp.route('/login', methods=['POST'])
 def login():
     data = request.json
@@ -57,13 +73,12 @@ def login():
         return jsonify({"message": "Email and password are required"}), 400
 
     user = User.query.filter_by(email=data['email']).first()
-    if user is None or not user.check_password(data['password']):
+    if not user or not user.check_password(data['password']):
         return jsonify({"message": "Invalid email or password"}), 401
 
-    # Set session data
     session['user_id'] = user.id
     session['user_role'] = user.role
-    session.permanent = True  # Makes the session persistent
+    session.permanent = True
 
     return jsonify({
         "message": "Login successful",
@@ -76,23 +91,22 @@ def login():
         }
     }), 200
 
+# ------------------ LOGOUT ------------------
 @auth_bp.route('/logout', methods=['POST'])
 def user_logout():
-    """Logout user and clear session"""
     session.clear()
     response = jsonify({"message": "Logged out successfully"})
     response.set_cookie('session', '', expires=0, max_age=0)
     response.set_cookie('user_role', '', expires=0, max_age=0)
     return response
 
+# ------------------ USER DASHBOARD ------------------
 @auth_bp.route('/access_user_dash', methods=['GET'])
 @login_required
 def access_user_dash():
-    user_id = session.get('user_id')
-    user = User.query.get(user_id)
+    user = User.query.get(session.get('user_id'))
     if not user:
         return jsonify({"error": "User not found"}), 404
-
     return jsonify({
         "message": "Welcome to your dashboard",
         "user": {
@@ -107,11 +121,9 @@ def access_user_dash():
 @auth_bp.route('/get_current_user', methods=['GET'])
 @login_required
 def get_current_user():
-    user_id = session.get('user_id')
-    user = User.query.get(user_id)
+    user = User.query.get(session.get('user_id'))
     if not user:
         return jsonify({"error": "User not found"}), 404
-
     return jsonify({
         "user": {
             "id": user.id,
@@ -122,106 +134,11 @@ def get_current_user():
         }
     }), 200
 
-@auth_bp.route('/users', methods=['GET'])
-@admin_required
-def get_all_users():
-    """Simple version - get all users without complex fields"""
-    try:
-        users = User.query.all()
-        users_data = []
-        
-        for user in users:
-            user_data = {
-                "id": user.id,
-                "firstName": user.first_name,
-                "lastName": user.last_name,
-                "email": user.email,
-                "phone": user.phone,
-                "role": user.role,
-                "isActive": getattr(user, 'is_active', True),
-            }
-            
-            # Only include created_at if it exists
-            if hasattr(user, 'created_at') and user.created_at:
-                user_data["createdAt"] = user.created_at.isoformat()
-                
-            users_data.append(user_data)
-        
-        return jsonify({"users": users_data}), 200
-        
-    except Exception as e:
-        print(f"Error in get_all_users: {str(e)}")
-        return jsonify({"message": "Internal server error"}), 500
-
-# Add these routes to your auth_bp in Flask
-
-@auth_bp.route('/users/<user_id>', methods=['PUT'])
-@admin_required
-def update_user(user_id):
-    """Update user information - Admin only"""
-    try:
-        user = User.query.get(user_id)
-        if not user:
-            return jsonify({"message": "User not found"}), 404
-        
-        data = request.json
-        
-        # Update basic info
-        if 'firstName' in data:
-            user.first_name = data['firstName']
-        if 'lastName' in data:
-            user.last_name = data['lastName']
-        if 'email' in data:
-            user.email = data['email']
-        if 'phone' in data:
-            user.phone = data['phone']
-        if 'role' in data:
-            user.role = data['role']
-        if 'isActive' in data:
-            user.is_active = data['isActive']
-        
-        db.session.commit()
-        
-        return jsonify({
-            "message": "User updated successfully",
-            "user": {
-                "id": user.id,
-                "firstName": user.first_name,
-                "lastName": user.last_name,
-                "email": user.email,
-                "phone": user.phone,
-                "role": user.role,
-                "isActive": user.is_active
-            }
-        }), 200
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"message": f"Error updating user: {str(e)}"}), 500
-
-@auth_bp.route('/users/<user_id>', methods=['DELETE'])
-@admin_required
-def delete_user(user_id):
-    """Delete user - Admin only"""
-    try:
-        user = User.query.get(user_id)
-        if not user:
-            return jsonify({"message": "User not found"}), 404
-        
-        db.session.delete(user)
-        db.session.commit()
-        
-        return jsonify({"message": "User deleted successfully"}), 200
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"message": f"Error deleting user: {str(e)}"}), 500
-
+# ------------------ PROFILE ------------------
 @auth_bp.route('/profile', methods=['GET', 'PUT'])
 @login_required
 def profile():
-    user_id = session.get('user_id')
-    user = User.query.get(user_id)
+    user = User.query.get(session.get('user_id'))
     if not user:
         return jsonify({"message": "User not found"}), 404
 
@@ -249,19 +166,12 @@ def profile():
     if request.method == 'PUT':
         data = request.json
         try:
-            # Update basic info
             user.first_name = data.get('firstName', user.first_name)
             user.last_name = data.get('lastName', user.last_name)
             user.phone = data.get('phone', user.phone)
-
-            # Handle date of birth
             dob_str = data.get('dateOfBirth')
             if dob_str:
                 user.date_of_birth = datetime.strptime(dob_str, '%Y-%m-%d').date()
-            elif 'dateOfBirth' in data and data['dateOfBirth'] is None:
-                user.date_of_birth = None
-
-            # Update other fields
             user.gender = data.get('gender', user.gender)
             user.address_line_1 = data.get('addressLine1', user.address_line_1)
             user.address_line_2 = data.get('addressLine2', user.address_line_2)
@@ -273,16 +183,145 @@ def profile():
             user.time_zone = data.get('timeZone', user.time_zone)
             user.theme = data.get('theme', user.theme)
 
-            # Update password if provided
             if 'password' in data and data['password']:
-                user.set_password(data['password'])
+                if 'currentPassword' not in data or not data['currentPassword']:
+                    return jsonify({"message": "Current password is required to change password"}), 400
+                if not check_password_hash(user.password_hash, data['currentPassword']):
+                    return jsonify({"message": "Current password is incorrect"}), 400
+                user.password_hash = generate_password_hash(data['password'])
 
             db.session.commit()
             return jsonify({"message": "Profile updated successfully"}), 200
-
-        except ValueError as e:
-            db.session.rollback()
-            return jsonify({"message": f"Invalid data format: {str(e)}"}), 400
         except Exception as e:
             db.session.rollback()
             return jsonify({"message": f"Error updating profile: {str(e)}"}), 500
+
+# ------------------ CHANGE PASSWORD ------------------
+@auth_bp.route('/change-password', methods=['POST'])
+@login_required
+def change_password():
+    user = User.query.get(session.get('user_id'))
+    if not user:
+        return jsonify({"message": "User not found"}), 404
+
+    data = request.json
+    current_password = data.get('currentPassword')
+    new_password = data.get('newPassword')
+
+    if not current_password or not new_password:
+        return jsonify({"message": "Current password and new password are required"}), 400
+
+    if not check_password_hash(user.password_hash, current_password):
+        return jsonify({"message": "Current password is incorrect"}), 400
+
+    user.password_hash = generate_password_hash(new_password)
+    db.session.commit()
+    return jsonify({"message": "Password updated successfully"}), 200
+
+# ------------------ ADMIN USER MANAGEMENT ------------------
+@auth_bp.route('/users', methods=['GET'])
+@admin_required
+def get_all_users():
+    users = User.query.all()
+    return jsonify({
+        "users": [
+            {
+                "id": user.id,
+                "firstName": user.first_name,
+                "lastName": user.last_name,
+                "email": user.email,
+                "phone": user.phone,
+                "role": user.role,
+                "isActive": getattr(user, 'is_active', True),
+                "createdAt": user.created_at.isoformat() if hasattr(user, 'created_at') and user.created_at else None
+            } for user in users
+        ]
+    }), 200
+
+@auth_bp.route('/users/<user_id>', methods=['PUT'])
+@admin_required
+def update_user(user_id):
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"message": "User not found"}), 404
+    data = request.json
+    for key, attr in [
+        ('firstName','first_name'), ('lastName','last_name'),
+        ('email','email'), ('phone','phone'),
+        ('role','role'), ('isActive','is_active')
+    ]:
+        if key in data:
+            setattr(user, attr, data[key])
+    db.session.commit()
+    return jsonify({"message": "User updated successfully"}), 200
+
+@auth_bp.route('/users/<user_id>', methods=['DELETE'])
+@admin_required
+def delete_user(user_id):
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"message": "User not found"}), 404
+    db.session.delete(user)
+    db.session.commit()
+    return jsonify({"message": "User deleted successfully"}), 200
+
+# ------------------ FORGOT PASSWORD ------------------
+@auth_bp.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    data = request.json
+    email = data.get('email')
+    if not email:
+        return jsonify({"message": "Email is required"}), 400
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"message": "Email not registered"}), 404
+
+    otp = str(random.randint(100000, 999999))
+    user.otp = otp
+    user.otp_expiry = datetime.now() + timedelta(minutes=10)
+    db.session.commit()
+
+    try:
+        send_otp_email(user.email, user.first_name, otp)
+    except Exception as e:
+        print("Failed to send OTP email:", e)
+        return jsonify({"message": "Failed to send OTP email"}), 500
+
+    return jsonify({"message": "OTP sent to your email"}), 200
+
+# ------------------ VERIFY OTP ------------------
+@auth_bp.route('/verify-otp', methods=['POST'])
+def verify_otp():
+    data = request.json
+    email, otp = data.get('email'), data.get('otp')
+    if not email or not otp:
+        return jsonify({"message": "Email and OTP are required"}), 400
+    user = User.query.filter_by(email=email).first()
+    if not user or not user.otp:
+        return jsonify({"message": "Invalid request"}), 400
+    if user.otp != otp:
+        return jsonify({"message": "Invalid OTP"}), 400
+    if datetime.now() > user.otp_expiry:
+        return jsonify({"message": "OTP expired"}), 400
+    return jsonify({"message": "OTP verified"}), 200
+
+# ------------------ RESET PASSWORD ------------------
+@auth_bp.route('/reset-password', methods=['POST'])
+def reset_password():
+    data = request.json
+    email, otp, new_password = data.get('email'), data.get('otp'), data.get('newPassword')
+    if not email or not otp or not new_password:
+        return jsonify({"message": "Email, OTP, and new password are required"}), 400
+    user = User.query.filter_by(email=email).first()
+    if not user or not user.otp:
+        return jsonify({"message": "Invalid request"}), 400
+    if user.otp != otp:
+        return jsonify({"message": "Invalid OTP"}), 400
+    if datetime.now() > user.otp_expiry:
+        return jsonify({"message": "OTP expired"}), 400
+
+    user.password_hash = generate_password_hash(new_password)
+    user.otp = None
+    user.otp_expiry = None
+    db.session.commit()
+    return jsonify({"message": "Password reset successfully"}), 200
