@@ -16,9 +16,14 @@ import {
   User,
   ChevronDown,
   ChevronRight,
-  LifeBuoy
+  LifeBuoy,
+  ChevronRightIcon,
+  ChevronLeftIcon
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
+
+
+import profilePic from '../assets/image/pic.png';
 
 function UserSidebar({ isCollapsed, setIsCollapsed }) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -34,9 +39,9 @@ function UserSidebar({ isCollapsed, setIsCollapsed }) {
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 768) {
-        setIsCollapsed(false); // mobile should show names always
+        setIsCollapsed(false); 
       } else {
-        setIsCollapsed(true); // desktop collapsed by default
+        setIsCollapsed(true); 
       }
     };
 
@@ -57,51 +62,80 @@ function UserSidebar({ isCollapsed, setIsCollapsed }) {
   const getNavClass = (path) =>
     `flex items-center px-3 py-2 rounded-lg transition-colors ${
       isActive(path)
-        ? 'bg-blue-100 text-blue-600 font-medium border-r-2 border-blue-600'
+        ? 'bg-blue-500 text-white font-medium'
         : 'text-gray-700 hover:bg-gray-100'
     }`;
 
-  // Fixed this line - changed = to =>
   const getDropdownItemClass = (path) =>
     `flex items-center pl-9 pr-3 py-2 rounded-lg transition-colors text-sm ${
       isActive(path)
-        ? 'bg-blue-50 text-blue-600 font-medium'
-        : 'text-gray-600 hover:bg-gray-50'
+        ? 'bg-blue-500 text-white font-medium'
+        : 'text-gray-700 hover:bg-gray-100' 
     }`;
+
+  
+  const DefaultAvatar = () => (
+    <img 
+      src={profilePic} 
+      alt="Profile" 
+      className="rounded-full h-10 w-10 object-cover"
+    />
+  );
 
   return (
     <>
       {/* Mobile toggle button */}
       <button
         onClick={() => setIsMobileOpen(!isMobileOpen)}
-        className="md:hidden fixed top-16 left-4 z-50 bg-blue-100 p-2 rounded-md shadow-lg border border-gray-200"
+        className="md:hidden fixed top-16 left-4 z-50 bg-blue-700 p-2 rounded-md shadow-lg border border-gray-300 text-white" 
       >
         {isMobileOpen ? <ChevronLeft className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </button>
 
-      {/* Sidebar */}
+     
       <div
         className={`${
           isMobileOpen ? 'w-64' : isCollapsed ? 'w-16' : 'w-64'
-        } bg-white border-r border-gray-500 transition-all duration-300 flex flex-col fixed top-16 left-0 z-40 h-[calc(100vh-4rem)] ${
+        } bg-white border-r border-gray-300 transition-all duration-300 flex flex-col fixed top-0 left-0 z-40 h-full ${
           isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-        }`}
+        }`} 
       >
-        {/* Fixed Header */}
-        <div className="px-4 py-3 mt-16 border-b border-gray-100 bg-white">
-          <div className="flex items-center justify-between">
-            {!isCollapsed && (
-              <h2 className="text-lg font-semibold text-gray-800">
-                Citizen Portal
-              </h2>
-            )}
+ 
+        <div className="px-4 py-4 border-b border-gray-300 bg-white flex items-center justify-between"> 
+          {isCollapsed ? (
+           
             <button
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className="h-8 w-8 p-1 rounded hover:bg-gray-100 flex items-center justify-center"
+              onClick={() => setIsCollapsed(false)}
+              className="h-10 w-10 flex items-center justify-center text-gray-700 hover:bg-gray-100 rounded-full" 
             >
-              <Menu className="h-5 w-5 text-gray-600" />
+              <ChevronRightIcon className="h-5 w-5" />
             </button>
-          </div>
+          ) : (
+            
+            <>
+              <div className="flex items-center">
+                {/* Show profile picture from assets */}
+                <DefaultAvatar />
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-gray-900"> 
+                    {user?.firstName && user?.lastName 
+                      ? `${user.firstName} ${user.lastName}` 
+                      : user?.name || 'User Name'
+                    }
+                  </p>
+                  <p className="text-xs text-gray-600">{user?.email || 'user@example.com'}</p> 
+                </div>
+              </div>
+              
+              {/* Toggle button near profile */}
+              <button
+                onClick={() => setIsCollapsed(true)}
+                className="h-8 w-8 p-1 rounded hover:bg-gray-100 flex items-center justify-center text-gray-700" 
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+            </>
+          )}
         </div>
 
         {/* Scrollable Navigation */}
@@ -125,6 +159,82 @@ function UserSidebar({ isCollapsed, setIsCollapsed }) {
                 </span>
               </NavLink>
 
+              {/* 101 Menu Section Header */}
+              {!isCollapsed && (
+                <div className="px-3 pt-4">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider"> 
+                    101 Menu
+                  </p>
+                </div>
+              )}
+
+              {/* Reports Dropdown */}
+              <div>
+                <button
+                  onClick={() => toggleDropdown('reports')}
+                  className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors" 
+                >
+                  <div className="flex items-center">
+                    <FileText className="h-5 w-5 min-w-[20px]" />
+                    {!isCollapsed && (
+                      <span className="ml-3 truncate hidden md:inline">
+                        Reports
+                      </span>
+                    )}
+                    <span className="ml-3 truncate md:hidden">
+                      Reports
+                    </span>
+                  </div>
+                  {!isCollapsed && (
+                    <span className="hidden md:inline">
+                      {openDropdowns.reports ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </span>
+                  )}
+                </button>
+
+                {openDropdowns.reports && !isCollapsed && (
+                  <div className="ml-2 mt-1 space-y-1">
+                    <NavLink
+                      to="/dashboard/myreports"
+                      className={getDropdownItemClass('/dashboard/myreports')}
+                      onClick={() => setIsMobileOpen(false)}
+                    >
+                      <FileText className="h-4 w-4 min-w-[16px]" />
+                      <span className="ml-3 truncate">My Reports</span>
+                    </NavLink>
+                    <NavLink
+                      to="/dashboard/reports"
+                      className={getDropdownItemClass('/dashboard/reports')}
+                      onClick={() => setIsMobileOpen(false)}
+                    >
+                      <FileText className="h-4 w-4 min-w-[16px]" />
+                      <span className="ml-3 truncate">Reports Form</span>
+                    </NavLink>
+                  </div>
+                )}
+              </div>
+
+              {/* Active Alerts */}
+              <NavLink
+                to="/dashboard/alerts"
+                className={getNavClass('/dashboard/alerts')}
+                onClick={() => setIsMobileOpen(false)}
+              >
+                <AlertTriangle className="h-5 w-5 min-w-[20px]" />
+                {!isCollapsed && (
+                  <span className="ml-3 truncate hidden md:inline">
+                    Active Alerts
+                  </span>
+                )}
+                <span className="ml-3 truncate md:hidden">
+                  Active Alerts
+                </span>
+              </NavLink>
+
               {/* Common Section Header */}
               {!isCollapsed && (
                 <div className="px-3 pt-4">
@@ -138,7 +248,7 @@ function UserSidebar({ isCollapsed, setIsCollapsed }) {
               <div>
                 <button
                   onClick={() => toggleDropdown('myAccount')}
-                  className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+                  className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors" 
                 >
                   <div className="flex items-center">
                     <User className="h-5 w-5 min-w-[20px]" />
@@ -209,88 +319,12 @@ function UserSidebar({ isCollapsed, setIsCollapsed }) {
                 </span>
               </NavLink>
 
-              {/* 101 Menu Section Header */}
-              {!isCollapsed && (
-                <div className="px-3 pt-4">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    101 Menu
-                  </p>
-                </div>
-              )}
-
-              {/* Reports Dropdown */}
-              <div>
-                <button
-                  onClick={() => toggleDropdown('reports')}
-                  className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
-                >
-                  <div className="flex items-center">
-                    <FileText className="h-5 w-5 min-w-[20px]" />
-                    {!isCollapsed && (
-                      <span className="ml-3 truncate hidden md:inline">
-                        Reports
-                      </span>
-                    )}
-                    <span className="ml-3 truncate md:hidden">
-                      Reports
-                    </span>
-                  </div>
-                  {!isCollapsed && (
-                    <span className="hidden md:inline">
-                      {openDropdowns.reports ? (
-                        <ChevronDown className="h-4 w-4" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4" />
-                      )}
-                    </span>
-                  )}
-                </button>
-
-                {openDropdowns.reports && !isCollapsed && (
-                  <div className="ml-2 mt-1 space-y-1">
-                    <NavLink
-                      to="/dashboard/myreports"
-                      className={getDropdownItemClass('/dashboard/myreports')}
-                      onClick={() => setIsMobileOpen(false)}
-                    >
-                      <FileText className="h-4 w-4 min-w-[16px]" />
-                      <span className="ml-3 truncate">My Reports</span>
-                    </NavLink>
-                    <NavLink
-                      to="/dashboard/reports"
-                      className={getDropdownItemClass('/dashboard/reports')}
-                      onClick={() => setIsMobileOpen(false)}
-                    >
-                      <FileText className="h-4 w-4 min-w-[16px]" />
-                      <span className="ml-3 truncate">Reports Form</span>
-                    </NavLink>
-                  </div>
-                )}
-              </div>
-
-              {/* Active Alerts */}
-              <NavLink
-                to="/dashboard/alerts"
-                className={getNavClass('/dashboard/alerts')}
-                onClick={() => setIsMobileOpen(false)}
-              >
-                <AlertTriangle className="h-5 w-5 min-w-[20px]" />
-                {!isCollapsed && (
-                  <span className="ml-3 truncate hidden md:inline">
-                    Active Alerts
-                  </span>
-                )}
-                <span className="ml-3 truncate md:hidden">
-                  Active Alerts
-                </span>
-              </NavLink>
-
               {/* Help Desk Section Header */}
               {!isCollapsed && (
                 <div className="px-3 pt-4">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider"> 
                     Help Desk
-                  </p>
+                    </p>
                 </div>
               )}
 
@@ -329,8 +363,6 @@ function UserSidebar({ isCollapsed, setIsCollapsed }) {
             </nav>
           </div>
         </div>
-
-       
       </div>
     </>
   );

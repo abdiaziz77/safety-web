@@ -2,12 +2,9 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import {
   AlertTriangle,
-  Search,
   Clock,
   MapPin,
-  ChevronRight,
   Loader2,
-  Filter,
   X,
   User,
   Calendar,
@@ -22,17 +19,14 @@ import {
   AlertCircle
 } from "lucide-react";
 
-function AlertsPage() {
+function Alerts() {
   const [alerts, setAlerts] = useState([]);
   const [resolvedAlerts, setResolvedAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterType, setFilterType] = useState("");
   const [selectedAlert, setSelectedAlert] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [showWelcome, setShowWelcome] = useState(true);
-  const [expiredAlerts, setExpiredAlerts] = useState([]);
   const [newAlerts, setNewAlerts] = useState([]);
 
   useEffect(() => {
@@ -53,11 +47,6 @@ function AlertsPage() {
           new Date(alert.created_at).getTime() > Date.now() - 300000
         );
         
-        // Check for expired alerts
-        const newlyExpired = liveAlerts.filter(alert => 
-          alert.end_date && new Date(alert.end_date) <= currentTime
-        );
-        
         // Filter out expired alerts from live alerts
         const activeAlerts = liveAlerts.filter(alert => 
           !alert.end_date || new Date(alert.end_date) > currentTime
@@ -70,12 +59,6 @@ function AlertsPage() {
         if (newlyAdded.length > 0) {
           setNewAlerts(newlyAdded);
           setTimeout(() => setNewAlerts([]), 5000);
-        }
-        
-        // Show expiration notification
-        if (newlyExpired.length > 0) {
-          setExpiredAlerts(newlyExpired);
-          setTimeout(() => setExpiredAlerts([]), 5000);
         }
         
         // Hide welcome message after 5 seconds if there are alerts
@@ -160,22 +143,6 @@ function AlertsPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const filteredAlerts = alerts.filter((alert) => {
-    const matchesSearch =
-      alert.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      alert.message?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterType ? alert.type === filterType : true;
-    return matchesSearch && matchesFilter;
-  });
-
-  const filteredResolvedAlerts = resolvedAlerts.filter((alert) => {
-    const matchesSearch =
-      alert.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      alert.message?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterType ? alert.type === filterType : true;
-    return matchesSearch && matchesFilter;
-  });
-
   const handleViewAlert = (alert) => {
     setSelectedAlert(alert);
     setShowModal(true);
@@ -186,7 +153,7 @@ function AlertsPage() {
     setSelectedAlert(null);
   };
 
-  const AlertCard = ({ alert, isResolved = false }) => {
+  const AlertItem = ({ alert, isResolved = false }) => {
     const getCategoryColor = (category) => {
       switch (category) {
         case 'Fire': return 'bg-red-100 text-red-800';
@@ -221,17 +188,7 @@ function AlertsPage() {
 
     return (
       <div 
-        className={`bg-white rounded-xl shadow-md p-5 mb-4 border-l-4 ${
-          isResolved 
-            ? 'border-gray-300 opacity-80' 
-            : alert.type === "Emergency" 
-              ? 'border-red-500' 
-              : alert.type === "Weather" 
-                ? 'border-blue-500' 
-                : alert.type === "Security" 
-                  ? 'border-orange-500'
-                  : 'border-blue-500'
-        } transition-all duration-300 hover:shadow-lg cursor-pointer`}
+        className={`p-5 mb-4 rounded-xl shadow-md border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 bg-white`}
         onClick={() => handleViewAlert(alert)}
       >
         <div className="flex justify-between items-start">
@@ -239,18 +196,21 @@ function AlertsPage() {
             <div className="flex items-center mb-2">
               {!isResolved && (
                 <div className="flex items-center mr-3">
-                  <div className={`h-3 w-3 rounded-full mr-1 ${
-                    alert.type === "Emergency" ? 'bg-red-500' : 'bg-blue-500'
-                  } animate-pulse`}></div>
+                  <div className={`h-4 w-4 rounded-full mr-2 ${
+                    alert.type === "Emergency" ? 'bg-red-500 animate-pulse' : 
+                    alert.type === "Weather" ? 'bg-blue-500 animate-pulse' : 
+                    alert.type === "Security" ? 'bg-orange-500 animate-pulse' : 
+                    'bg-green-500 animate-pulse'
+                  }`}></div>
                   <span className="text-sm font-semibold text-blue-600">LIVE</span>
                 </div>
               )}
-              <span className={`text-xs font-medium px-2 py-1 rounded-full ${getCategoryColor(alert.category || alert.type)}`}>
+              <span className={`text-xs font-medium px-3 py-1.5 rounded-full ${getCategoryColor(alert.category || alert.type)}`}>
                 {alert.category || alert.type}
               </span>
             </div>
-            <h3 className="font-bold text-lg mb-2">{alert.title}</h3>
-            <p className="text-gray-600 mb-3 line-clamp-2">{alert.message}</p>
+            <h3 className="font-bold text-lg mb-2 text-blue-800">{alert.title}</h3>
+            <p className="text-gray-600 mb-3">{alert.message}</p>
             <div className="flex flex-wrap gap-3 text-sm text-gray-500">
               <span className="flex items-center gap-1">
                 <MapPin className="h-4 w-4" />
@@ -265,20 +225,14 @@ function AlertsPage() {
             </div>
           </div>
           {isResolved ? (
-            <div className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full flex items-center">
+            <div className="bg-green-100 text-green-800 text-xs font-medium px-3 py-1.5 rounded-full flex items-center">
               <CheckCircle className="h-4 w-4 mr-1" />
               Resolved
             </div>
           ) : (
-            <button
-              className="flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleViewAlert(alert);
-              }}
-            >
-              View Details <ChevronRight className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-1 text-blue-600 font-medium">
+              View Details
+            </div>
           )}
         </div>
       </div>
@@ -286,7 +240,7 @@ function AlertsPage() {
   };
 
   const EmptyState = () => (
-    <div className="text-center py-16 bg-white rounded-xl shadow-sm relative overflow-hidden">
+    <div className="text-center py-16 relative overflow-hidden">
       <div className="relative inline-block mb-6">
         <div className="absolute -inset-4 bg-blue-100 rounded-full opacity-50 animate-pulse"></div>
         <div className="relative bg-white p-6 rounded-full">
@@ -455,8 +409,8 @@ function AlertsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-xl shadow-lg flex flex-col items-center">
+      <div className="min-h-screen bg-blue-50 flex items-center justify-center">
+        <div className="p-8 flex flex-col items-center">
           <Loader2 className="animate-spin w-10 h-10 text-blue-500 mb-4" />
           <p className="text-gray-600">Loading latest alerts...</p>
         </div>
@@ -466,8 +420,8 @@ function AlertsPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full mx-4">
+      <div className="min-h-screen bg-blue-50 flex items-center justify-center">
+        <div className="p-8 max-w-md w-full mx-4">
           <div className="flex items-center gap-3 text-red-500 mb-4">
             <AlertCircle className="w-8 h-8" />
             <h2 className="text-xl font-bold">Connection Error</h2>
@@ -485,7 +439,15 @@ function AlertsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-blue-50 relative">
+      {/* Bubble Background (same as SafetyTipsPage) */}
+      <div className="absolute top-0 left-0 w-full h-full opacity-10">
+        <div className="absolute top-10 left-10 w-20 h-20 bg-blue-500 rounded-full"></div>
+        <div className="absolute top-5 right-20 w-16 h-16 bg-blue-500 rounded-full"></div>
+        <div className="absolute bottom-20 left-20 w-24 h-24 bg-blue-500 rounded-full"></div>
+        <div className="absolute bottom-10 right-10 w-20 h-20 bg-blue-500 rounded-full"></div>
+      </div>
+
       {/* Welcome Notification */}
       {showWelcome && (
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-fade-in">
@@ -494,7 +456,7 @@ function AlertsPage() {
               <Sparkles className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <p className="font-medium text-gray-800">Welcome to SafeZone101 Alerts</p>
+              <p className="font-medium text-gray-800">Welcome to Our Alert System</p>
               <p className="text-sm text-gray-600">Stay informed about community safety</p>
             </div>
             <button 
@@ -530,31 +492,8 @@ function AlertsPage() {
         </div>
       )}
 
-      {/* Expiration Notification */}
-      {expiredAlerts.length > 0 && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-fade-in">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg shadow-lg p-4 max-w-md">
-            <div className="flex items-start gap-3">
-              <History className="w-5 h-5 text-blue-600 mt-0.5" />
-              <div className="flex-1">
-                <p className="font-medium text-blue-800">Alerts Updated</p>
-                <p className="text-sm text-blue-600">
-                  {expiredAlerts.length} alert{expiredAlerts.length !== 1 ? 's have' : ' has'} expired
-                </p>
-              </div>
-              <button 
-                onClick={() => setExpiredAlerts([])} 
-                className="text-blue-400 hover:text-blue-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Header Section */}
-      <div className="bg-white border-b border-gray-200 shadow-sm">
+      <div className="border-b border-gray-200 bg-white relative z-10">
         <div className="max-w-6xl mx-auto px-6 py-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-4">
@@ -562,17 +501,17 @@ function AlertsPage() {
                 <Megaphone className="w-8 h-8 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-800">SafeZone101 Alerts</h1>
+                <h1 className="text-3xl font-bold text-blue-800">SafeZone101 Alerts</h1>
                 <p className="text-gray-600 mt-2">
                   Community safety notifications and emergency alerts
                 </p>
               </div>
             </div>
             
-            <div className="bg-gray-100 p-3 rounded-xl">
+            <div className="bg-blue-100 p-3 rounded-xl">
               <div className="flex items-center gap-2">
-                <div className={`rounded-full w-3 h-3 ${alerts.length > 0 ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
-                <span className="text-sm font-medium text-gray-700">
+                <div className={`rounded-full w-4 h-4 ${alerts.length > 0 ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+                <span className="text-sm font-medium text-blue-800">
                   {alerts.length} Active Alert{alerts.length !== 1 ? 's' : ''}
                 </span>
               </div>
@@ -582,96 +521,45 @@ function AlertsPage() {
       </div>
 
       {/* Content Section */}
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
-          {/* Search & Filter */}
-          <div className="flex flex-col md:flex-row gap-4 mb-8">
-            <div className="flex items-center border border-gray-200 rounded-lg px-4 py-3 flex-1 shadow-sm focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition">
-              <Search className="text-gray-500 mr-3" />
-              <input
-                type="text"
-                placeholder="Search alerts by title or description..."
-                className="w-full outline-none"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <div className="flex items-center border border-gray-200 rounded-lg px-4 py-3 shadow-sm bg-gray-50 min-w-[200px]">
-              <Filter className="text-gray-500 mr-3" />
-              <select
-                className="outline-none bg-transparent w-full"
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-              >
-                <option value="">All Alert Types</option>
-                <option value="Emergency">Emergency</option>
-                <option value="Weather">Weather</option>
-                <option value="Security">Security</option>
-                <option value="Utilities">Utilities</option>
-                <option value="General">General</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Results Count */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
-            <p className="text-gray-600">
-              Showing <span className="font-semibold">{filteredAlerts.length}</span> of{" "}
-              <span className="font-semibold">{alerts.length}</span> active alerts
-            </p>
-            
-            {filterType && (
-              <div className="flex items-center gap-2">
-                <span className="bg-gray-100 text-gray-800 text-sm px-3 py-1 rounded-full flex items-center gap-2">
-                  Filtered by: {filterType}
-                  <button 
-                    onClick={() => setFilterType("")}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </span>
-              </div>
-            )}
-          </div>
-
+      <div className="max-w-6xl mx-auto px-6 py-8 relative z-10">
+        <div className="mb-8">
           {/* Live Alerts Section */}
           <div className="mb-12">
             <div className="flex items-center mb-6">
               <Zap className="h-6 w-6 text-blue-600 mr-2" />
-              <h2 className="text-xl font-semibold text-gray-800">Live Alerts</h2>
+              <h2 className="text-xl font-semibold text-blue-800">Live Alerts</h2>
               {alerts.length > 0 && (
-                <span className="ml-3 bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full">
+                <span className="ml-3 bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full">
                   {alerts.length} Active
                 </span>
               )}
             </div>
 
-            {filteredAlerts.length === 0 ? (
+            {alerts.length === 0 ? (
               <EmptyState />
             ) : (
-              <div className="space-y-4">
-                {filteredAlerts.map(alert => (
-                  <AlertCard key={alert.id} alert={alert} />
+              <div>
+                {alerts.map(alert => (
+                  <AlertItem key={alert.id} alert={alert} />
                 ))}
               </div>
             )}
           </div>
 
           {/* Resolved Alerts Section */}
-          {filteredResolvedAlerts.length > 0 && (
+          {resolvedAlerts.length > 0 && (
             <div>
               <div className="flex items-center mb-6">
                 <Calendar className="h-6 w-6 text-gray-600 mr-2" />
-                <h2 className="text-xl font-semibold text-gray-800">Recently Resolved</h2>
-                <span className="ml-3 bg-gray-100 text-gray-800 text-xs font-medium px-2 py-1 rounded-full">
-                  {filteredResolvedAlerts.length} Resolved
+                <h2 className="text-xl font-semibold text-blue-800">Recently Resolved</h2>
+                <span className="ml-3 bg-gray-100 text-gray-800 text-sm font-medium px-3 py-1 rounded-full">
+                  {resolvedAlerts.length} Resolved
                 </span>
               </div>
 
-              <div className="space-y-4">
-                {filteredResolvedAlerts.map(alert => (
-                  <AlertCard key={alert.id} alert={alert} isResolved={true} />
+              <div>
+                {resolvedAlerts.map(alert => (
+                  <AlertItem key={alert.id} alert={alert} isResolved={true} />
                 ))}
               </div>
             </div>
@@ -691,8 +579,19 @@ function AlertsPage() {
           <p>Alerts are automatically updated. Page refreshes every 30 seconds.</p>
         </div>
       </div>
+
+      {/* Custom animations */}
+      <style jsx>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .animate-fade-in {
+          animation: fadeIn 0.6s ease-out forwards;
+        }
+      `}</style>
     </div>
   );
 }
 
-export default AlertsPage;
+export default Alerts;

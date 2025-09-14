@@ -19,7 +19,7 @@ function About() {
       icon: Shield,
       title: 'Instant Safety Alerts',
       description: 'Administrators can broadcast urgent safety alerts to keep the community informed.',
-      color: 'bg-blue-50 text-blue-600 border-blue-100'
+      color: 'bg-green-50 text-green-600 border-green-100'
     },
     {
       icon: BarChart3,
@@ -31,7 +31,7 @@ function About() {
       icon: Users,
       title: 'Community Collaboration',
       description: 'Foster a safer community through collective awareness and proactive reporting.',
-      color: 'bg-green-50 text-green-600 border-green-100'
+      color: 'bg-blue-50 text-blue-600 border-blue-100'
     },
   ];
 
@@ -40,7 +40,7 @@ function About() {
       icon: Shield,
       title: 'Safety First',
       description: 'Every feature is designed with community safety as the top priority.',
-      color: 'bg-blue-100/20 text-blue-600'
+      color: 'bg-green-100/20 text-green-600'
     },
     {
       icon: Users,
@@ -52,7 +52,7 @@ function About() {
       icon: Heart,
       title: 'Trusted & Secure',
       description: 'Your data is protected with enterprise-grade security measures.',
-      color: 'bg-red-100/20 text-red-600'
+      color: 'bg-green-100/20 text-green-600'
     },
   ];
 
@@ -128,8 +128,8 @@ function About() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <div className="inline-flex items-center justify-center mb-6">
-              <div className="bg-blue-100 p-4 rounded-2xl">
-                <Shield className="h-10 w-10 text-blue-600" />
+              <div className="bg-green-100 p-4 rounded-2xl">
+                <Shield className="h-10 w-10 text-green-600" />
               </div>
             </div>
             
@@ -164,8 +164,8 @@ function About() {
                 key={index} 
                 className="bg-white rounded-xl border border-gray-200 p-8 transition-all hover:shadow-lg"
               >
-                <div className="flex items-center justify-center w-16 h-16 rounded-xl bg-blue-50 mb-6 mx-auto">
-                  <value.icon className="h-8 w-8 text-blue-600" />
+                <div className="flex items-center justify-center w-16 h-16 rounded-xl bg-green-50 mb-6 mx-auto">
+                  <value.icon className="h-8 w-8 text-green-600" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-3 text-center">{value.title}</h3>
                 <p className="text-gray-600 text-center">
@@ -224,8 +224,8 @@ function About() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {alertSystem.map((step, index) => (
               <div key={index} className="bg-white rounded-xl p-6 border border-gray-200 text-center">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-xl font-bold text-blue-600">{step.step}</span>
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-xl font-bold text-green-600">{step.step}</span>
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">{step.title}</h3>
                 <p className="text-gray-600 text-sm">{step.description}</p>
@@ -256,8 +256,8 @@ function About() {
                   className="w-full h-48 object-cover"
                 />
                 <div className="p-6">
-                  <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg mb-4">
-                    <feature.icon className="h-6 w-6 text-blue-600" />
+                  <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg mb-4">
+                    <feature.icon className="h-6 w-6 text-green-600" />
                   </div>
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">{feature.title}</h3>
                   <p className="text-gray-600">{feature.description}</p>
@@ -322,9 +322,9 @@ function About() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-blue-50 rounded-xl p-6 border border-blue-200">
-              <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg mb-4">
-                <BookOpen className="h-6 w-6 text-blue-600" />
+            <div className="bg-green-50 rounded-xl p-6 border border-green-200">
+              <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg mb-4">
+                <BookOpen className="h-6 w-6 text-green-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Educational Guides</h3>
               <p className="text-gray-600">Step-by-step instructions for emergency preparedness and response</p>
@@ -338,9 +338,9 @@ function About() {
               <p className="text-gray-600">Bite-sized safety advice for everyday situations and emergencies</p>
             </div>
             
-            <div className="bg-purple-50 rounded-xl p-6 border border-purple-200">
-              <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg mb-4">
-                <Cloud className="h-6 w-6 text-purple-600" />
+            <div className="bg-green-50 rounded-xl p-6 border border-green-200">
+              <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg mb-4">
+                <Cloud className="h-6 w-6 text-green-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Regular Updates</h3>
               <p className="text-gray-600">Current safety information and community alerts</p>
@@ -355,8 +355,8 @@ function About() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {stats.map((stat, index) => (
               <div key={index} className="bg-white rounded-xl p-8 text-center border border-gray-200">
-                <div className="bg-blue-50 w-16 h-16 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <stat.icon className="h-8 w-8 text-blue-600" />
+                <div className="bg-green-50 w-16 h-16 rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <stat.icon className="h-8 w-8 text-green-600" />
                 </div>
                 <div className="text-4xl font-bold text-gray-900 mb-2">{stat.value}</div>
                 <div className="text-gray-600">{stat.label}</div>
@@ -367,7 +367,7 @@ function About() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 bg-blue-100">
+      <section className="py-16 bg-green-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="bg-black/10 backdrop-blur-sm rounded-2xl p-12 border border-black/20">
             <h2 className="text-3xl font-bold text-black mb-4">
@@ -379,7 +379,7 @@ function About() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 to="/signup"
-                className="px-8 py-4 bg-white hover:bg-gray-100 text-blue-600 font-semibold rounded-lg shadow-md transition-colors"
+                className="px-8 py-4 bg-white hover:bg-gray-100 text-green-600 font-semibold rounded-lg shadow-md transition-colors"
               >
                 Sign Up as a Resident
               </Link>

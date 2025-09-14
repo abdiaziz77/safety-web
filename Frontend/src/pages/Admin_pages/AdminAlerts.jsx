@@ -1,312 +1,300 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Button,
-  Typography,
-  Chip,
-  Box,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  FormControl,
-  Select,
-  MenuItem,
-  Snackbar,
-  Alert,
-  CircularProgress
-} from '@mui/material';
-import {
-  Delete,
+  Plus,
   Edit,
-  Visibility,
-  Add,
-  Refresh,
+  Trash2,
+  Bell,
+  Filter,
+  Search,
+  AlertTriangle,
+  Clock,
+  MapPin,
   CheckCircle,
-  Warning,
-  Error
-} from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+  X,
+  Loader2,
+  AlertCircle
+} from 'lucide-react';
 
-const AdminAlertsList = () => {
-  const [alerts, setAlerts] = useState([]); // initialize as empty array
+function AdminAlertsList() {
+  const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [openDialog, setOpenDialog] = useState(false);
-  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [currentAlert, setCurrentAlert] = useState(null);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const navigate = useNavigate();
+  const [error, setError] = useState(null);
+  const [filterStatus, setFilterStatus] = useState('All');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  const [notifyAlert, setNotifyAlert] = useState(null);
 
   useEffect(() => {
     fetchAlerts();
-  }, []);
+  }, [filterStatus]);
 
   const fetchAlerts = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://127.0.0.1:5000/api/alerts/admin/alerts', {
-        withCredentials: true
-      });
-      // Safe check: make sure it's an array
-      const alertsData = Array.isArray(response.data) ? response.data : response.data?.alerts || [];
-      setAlerts(alertsData);
-    } catch (error) {
-      console.error('Error fetching alerts:', error);
-      setSnackbar({ open: true, message: 'Failed to load alerts', severity: 'error' });
+      const url = filterStatus === 'All' 
+        ? '/api/alerts/admin/alerts' 
+        : `/api/alerts/admin/alerts?status=${filterStatus}`;
       
+      const response = await axios.get(url);
+      setAlerts(response.data.alerts || []);
+    } catch (err) {
+      console.error('Error fetching alerts:', err);
+      setError('Failed to load alerts');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleDelete = async (alertId) => {
+    try {
+      await axios.delete(`/api/alerts/admin/alerts/${alertId}`);
+      setAlerts(alerts.filter(alert => alert.id !== alertId));
+      setShowDeleteConfirm(null);
+    } catch (err) {
+      console.error('Error deleting alert:', err);
+      setError('Failed to delete alert');
+    }
+  };
+
   const handleStatusChange = async (alertId, newStatus) => {
     try {
-      await axios.patch(`/api/alerts/admin/alerts/${alertId}/status`, 
-        { status: newStatus },
-        { withCredentials: true }
+      const response = await axios.patch(
+        `/api/alerts/admin/alerts/${alertId}/status`,
+        { status: newStatus }
       );
-      setSnackbar({ open: true, message: 'Alert status updated', severity: 'success' });
-      fetchAlerts();
-    } catch (error) {
-      console.error('Error updating status:', error);
-      setSnackbar({ open: true, message: 'Failed to update status', severity: 'error' });
+      
+      setAlerts(alerts.map(alert => 
+        alert.id === alertId ? response.data : alert
+      ));
+    } catch (err) {
+      console.error('Error updating status:', err);
+      setError('Failed to update alert status');
     }
   };
 
-  const handleDeleteAlert = async () => {
-    if (!currentAlert) return;
+  const handleNotify = async (alertId) => {
     try {
-      await axios.delete(`/api/alerts/admin/alerts/${currentAlert.id}`, { withCredentials: true });
-      setSnackbar({ open: true, message: 'Alert deleted', severity: 'success' });
-      fetchAlerts();
-    } catch (error) {
-      console.error('Error deleting alert:', error);
-      setSnackbar({ open: true, message: 'Failed to delete alert', severity: 'error' });
-    } finally {
-      setOpenDeleteDialog(false);
-      setCurrentAlert(null);
+      await axios.post(`/api/alerts/admin/alerts/${alertId}/notify`);
+      setNotifyAlert(alertId);
+      setTimeout(() => setNotifyAlert(null), 3000);
+    } catch (err) {
+      console.error('Error sending notifications:', err);
+      setError('Failed to send notifications');
     }
   };
 
-  const getStatusIcon = (status) => {
+  const filteredAlerts = alerts.filter(alert => 
+    alert.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    alert.message?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const getStatusBadgeClass = (status) => {
     switch (status) {
-      case 'Active':
-        return <CheckCircle color="success" />;
-      case 'Inactive':
-        return <Warning color="warning" />;
-      case 'Resolved':
-        return <CheckCircle color="info" />;
-      case 'Critical':
-        return <Error color="error" />;
-      default:
-        return <Warning color="warning" />;
+      case 'Active': return 'bg-green-100 text-green-800';
+      case 'Critical': return 'bg-red-100 text-red-800';
+      case 'Resolved': return 'bg-blue-100 text-blue-800';
+      case 'Inactive': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getSeverityIcon = (severity) => {
+    switch (severity) {
+      case 'high': return <AlertTriangle className="h-4 w-4 text-red-500" />;
+      case 'medium': return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+      case 'low': return <AlertTriangle className="h-4 w-4 text-blue-500" />;
+      default: return <AlertTriangle className="h-4 w-4 text-gray-500" />;
     }
   };
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" mt={4}>
-        <CircularProgress />
-      </Box>
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="animate-spin w-8 h-8 text-blue-500" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+        <AlertCircle className="h-5 w-5 text-red-500" />
+        <p className="text-red-700">{error}</p>
+        <button onClick={() => setError(null)} className="ml-auto">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" fontWeight="bold">
-          Alerts Management
-        </Typography>
-        <Box>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => navigate('/admin/dashboard/alertsform')}
-            sx={{ mr: 2 }}
-          >
-            Create Alert
-          </Button>
-          <IconButton onClick={fetchAlerts}>
-            <Refresh />
-          </IconButton>
-        </Box>
-      </Box>
-
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Title</TableCell>
-              <TableCell>Type</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Created</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {alerts.length > 0 ? (
-              alerts.map((alert) => (
-                <TableRow key={alert.id}>
-                  <TableCell>{alert.title}</TableCell>
-                  <TableCell>
-                    <Chip label={alert.type} size="small" />
-                  </TableCell>
-                  <TableCell>
-                    <Box display="flex" alignItems="center" gap={1}>
-                      {getStatusIcon(alert.status)}
-                      <FormControl size="small" sx={{ minWidth: 120 }}>
-                        <Select
-                          value={alert.status}
-                          onChange={(e) => handleStatusChange(alert.id, e.target.value)}
-                        >
-                          <MenuItem value="Active">Active</MenuItem>
-                          <MenuItem value="Inactive">Inactive</MenuItem>
-                          <MenuItem value="Critical">Critical</MenuItem>
-                          <MenuItem value="Resolved">Resolved</MenuItem>
-                        </Select>
-                      </FormControl>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    {alert.created_at ? new Date(alert.created_at).toLocaleDateString() : '-'}
-                  </TableCell>
-                  <TableCell>
-                    <Box display="flex" gap={1}>
-                      <IconButton
-                        size="small"
-                        onClick={() => {
-                          setCurrentAlert(alert);
-                          setOpenDialog(true);
-                        }}
-                      >
-                        <Visibility color="primary" />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        onClick={() => navigate(`/admin/dashboard/alertsform/${alert.id}/edit`)}
-                      >
-                        <Edit color="secondary" />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        onClick={() => {
-                          setCurrentAlert(alert);
-                          setOpenDeleteDialog(true);
-                        }}
-                      >
-                        <Delete color="error" />
-                      </IconButton>
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={5} align="center">
-                  No alerts found
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
-
-      {/* Alert Details Dialog */}
-      <Dialog
-        open={openDialog}
-        onClose={() => setOpenDialog(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>Alert Details</DialogTitle>
-        <DialogContent dividers>
-          {currentAlert && (
-            <Box>
-              <Typography variant="h6" gutterBottom>{currentAlert.title}</Typography>
-              <Typography variant="subtitle2" color="textSecondary" gutterBottom>
-                {currentAlert.type} • {currentAlert.status}
-              </Typography>
-              <Box my={2}>
-                <Typography variant="body1">{currentAlert.message}</Typography>
-              </Box>
-              {currentAlert.affected_area && (
-                <Box my={2}>
-                  <Typography variant="subtitle2">Affected Area:</Typography>
-                  <Typography>{currentAlert.affected_area}</Typography>
-                </Box>
-              )}
-              <Box display="flex" justifyContent="space-between" mt={3}>
-                <Typography variant="caption">
-                  Created: {currentAlert.created_at ? new Date(currentAlert.created_at).toLocaleString() : '-'}
-                </Typography>
-                <Typography variant="caption">
-                  Updated: {currentAlert.updated_at ? new Date(currentAlert.updated_at).toLocaleString() : '-'}
-                </Typography>
-              </Box>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>Close</Button>
-          <Button
-            variant="contained"
-            onClick={() => {
-              if (currentAlert) {
-                setOpenDialog(false);
-                navigate(`/admin/dashboard/alertsform/${alert.id}/edit`);
-              }
-            }}
-          >
-            Edit Alert
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog
-        open={openDeleteDialog}
-        onClose={() => setOpenDeleteDialog(false)}
-      >
-        <DialogTitle>Confirm Delete</DialogTitle>
-        <DialogContent>
-          <Typography>Are you sure you want to delete this alert?</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDeleteDialog(false)}>Cancel</Button>
-          <Button
-            onClick={handleDeleteAlert}
-            color="error"
-            variant="contained"
-          >
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-      >
-        <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
+    <div className="bg-white rounded-xl shadow-sm p-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <h2 className="text-2xl font-bold text-gray-800">Manage Alerts</h2>
+        <a
+          href="/admin/dashboard/alertsform"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
         >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+          <Plus className="h-4 w-4" />
+          New Alert
+        </a>
+      </div>
+
+      {/* Filters and Search */}
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="flex items-center border border-gray-200 rounded-lg px-4 py-2 flex-1">
+          <Search className="text-gray-500 mr-2" />
+          <input
+            type="text"
+            placeholder="Search alerts..."
+            className="w-full outline-none"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        
+        <div className="flex items-center border border-gray-200 rounded-lg px-4 py-2 bg-gray-50 min-w-[200px]">
+          <Filter className="text-gray-500 mr-2" />
+          <select
+            className="outline-none bg-transparent w-full"
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+          >
+            <option value="All">All Status</option>
+            <option value="Active">Active</option>
+            <option value="Critical">Critical</option>
+            <option value="Inactive">Inactive</option>
+            <option value="Resolved">Resolved</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Alerts Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-gray-200">
+              <th className="text-left py-3 px-4">Title</th>
+              <th className="text-left py-3 px-4">Type</th>
+              <th className="text-left py-3 px-4">Severity</th>
+              <th className="text-left py-3 px-4">Status</th>
+              <th className="text-left py-3 px-4">Location</th>
+              <th className="text-left py-3 px-4">Date</th>
+              <th className="text-left py-3 px-4">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredAlerts.map((alert) => (
+              <tr key={alert.id} className="border-b border-gray-100 hover:bg-gray-50">
+                <td className="py-3 px-4">
+                  <div className="font-medium">{alert.title}</div>
+                  <div className="text-sm text-gray-600 line-clamp-1">{alert.message}</div>
+                </td>
+                <td className="py-3 px-4">
+                  <span className="text-sm bg-gray-100 text-gray-800 px-2 py-1 rounded-full">
+                    {alert.type}
+                  </span>
+                </td>
+                <td className="py-3 px-4">
+                  <div className="flex items-center gap-1">
+                    {getSeverityIcon(alert.severity)}
+                    <span className="capitalize">{alert.severity}</span>
+                  </div>
+                </td>
+                <td className="py-3 px-4">
+                  <select
+                    value={alert.status}
+                    onChange={(e) => handleStatusChange(alert.id, e.target.value)}
+                    className={`text-xs font-medium px-2 py-1 rounded-full border-none ${getStatusBadgeClass(alert.status)}`}
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Critical">Critical</option>
+                    <option value="Inactive">Inactive</option>
+                    <option value="Resolved">Resolved</option>
+                  </select>
+                </td>
+                <td className="py-3 px-4">
+                  <div className="flex items-center gap-1 text-sm text-gray-600">
+                    <MapPin className="h-4 w-4" />
+                    {alert.location || 'N/A'}
+                  </div>
+                </td>
+                <td className="py-3 px-4">
+                  <div className="text-sm text-gray-600">
+                    {new Date(alert.start_date).toLocaleDateString()}
+                  </div>
+                </td>
+                <td className="py-3 px-4">
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={`/admin/alerts/edit/${alert.id}`}
+                      className="p-1 text-blue-600 hover:text-blue-800"
+                      title="Edit"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </a>
+                    
+                    <button
+                      onClick={() => handleNotify(alert.id)}
+                      className="p-1 text-green-600 hover:text-green-800"
+                      title="Send Notifications"
+                      disabled={notifyAlert === alert.id}
+                    >
+                      {notifyAlert === alert.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Bell className="h-4 w-4" />
+                      )}
+                    </button>
+                    
+                    <button
+                      onClick={() => setShowDeleteConfirm(alert.id)}
+                      className="p-1 text-red-600 hover:text-red-800"
+                      title="Delete"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        
+        {filteredAlerts.length === 0 && (
+          <div className="text-center py-12 text-gray-500">
+            <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+            <p>No alerts found</p>
+          </div>
+        )}
+      </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full">
+            <h3 className="text-lg font-bold mb-4">Confirm Delete</h3>
+            <p className="text-gray-600 mb-6">Are you sure you want to delete this alert? This action cannot be undone.</p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(null)}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDelete(showDeleteConfirm)}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
-};
+}
 
 export default AdminAlertsList;

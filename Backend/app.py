@@ -14,6 +14,7 @@ from blueprints.admin import admin_auth_bp
 from blueprints.chat import chat_bp 
 from blueprints.notification import notifications_bp
 from blueprints.messages import messages_bp
+from blueprints.contact import contact_bp
 
 # Initialize Flask-Mail
 mail = Mail()
@@ -76,6 +77,7 @@ def create_app():
     app.register_blueprint(chat_bp, url_prefix='/api/chat')
     app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
     app.register_blueprint(messages_bp, url_prefix='/api')
+    app.register_blueprint(contact_bp, url_prefix='/api/contact')
 
     # ---------------- CREATE DATABASE & DEFAULT ADMIN ----------------
     with app.app_context():

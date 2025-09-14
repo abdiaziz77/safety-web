@@ -35,9 +35,14 @@ import {
   Save,
   Edit,
   Cancel,
+  Person,
 } from "@mui/icons-material";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+
+// ✅ Axios global setup
+axios.defaults.withCredentials = true;
+axios.defaults.baseURL = "http://127.0.0.1:5000";
 
 const AdminReportDetails = () => {
   const { id } = useParams();
@@ -54,8 +59,7 @@ const AdminReportDetails = () => {
       try {
         setLoading(true);
         const response = await axios.get(
-          `http://127.0.0.1:5000/api/reports/admin/reports/${id}`,
-          { withCredentials: true }
+          `/api/reports/admin/reports/${id}`
         );
         setReport(response.data);
         setEditedData(response.data);
@@ -73,13 +77,12 @@ const AdminReportDetails = () => {
   // Save changes
   const handleSave = async () => {
     try {
-      const response = await axios.get(
-        `http://127.0.0.1:5000/api/reports/admin/reports/${id}`,
+      const response = await axios.put(
+        `/api/reports/admin/reports/${id}`,
         {
           status: editedData.status,
           admin_notes: editedData.admin_notes,
-        },
-        { withCredentials: true }
+        }
       );
 
       setReport(response.data);
@@ -105,6 +108,29 @@ const AdminReportDetails = () => {
       default:
         return <Pending color="warning" />;
     }
+  };
+
+  // Function to get user display info from author object
+  const getUserDisplayInfo = (report) => {
+    if (!report.author) return "Anonymous";
+    
+    if (report.author.first_name && report.author.last_name) {
+      return `${report.author.first_name} ${report.author.last_name}`;
+    } else if (report.author.email) {
+      return report.author.email;
+    } else if (report.author.name) {
+      return report.author.name;
+    }
+    
+    return "Anonymous";
+  };
+
+  // Function to get email from author object
+  const getUserEmail = (report) => {
+    if (report.author?.email) {
+      return report.author.email;
+    }
+    return "Anonymous";
   };
 
   if (loading) return <LinearProgress />;
@@ -153,7 +179,6 @@ const AdminReportDetails = () => {
         <Typography variant="h4" fontWeight="bold">
           Report Details
         </Typography>
-        
       </Box>
 
       <Grid container spacing={3}>
@@ -195,6 +220,18 @@ const AdminReportDetails = () => {
                         : "default"
                     }
                   />
+                </Grid>
+                
+                {/* Author Information */}
+                <Grid item xs={12}>
+                  <Box display="flex" alignItems="center" gap={1} mb={1}>
+                    <Person color="primary" fontSize="small" />
+                    <Typography variant="subtitle2">Submitted by:</Typography>
+                  </Box>
+                  <Typography>
+                    {getUserDisplayInfo(report)}
+                    {report.author?.email && ` (${report.author.email})`}
+                  </Typography>
                 </Grid>
               </Grid>
             </CardContent>
@@ -239,9 +276,73 @@ const AdminReportDetails = () => {
           </Card>
         </Grid>
 
-        
         <Grid item xs={12} md={4}>
-          
+          <Card variant="outlined">
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Status & Admin Notes
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel>Status</InputLabel>
+                <Select
+                  value={editedData.status || "Pending"}
+                  label="Status"
+                  onChange={(e) => setEditedData({...editedData, status: e.target.value})}
+                  disabled={!isEditing}
+                >
+                  <MenuItem value="Pending">Pending</MenuItem>
+                  <MenuItem value="In Progress">In Progress</MenuItem>
+                  <MenuItem value="Resolved">Resolved</MenuItem>
+                  <MenuItem value="Rejected">Rejected</MenuItem>
+                  <MenuItem value="Closed">Closed</MenuItem>
+                </Select>
+              </FormControl>
+              
+              <TextField
+                label="Admin Notes"
+                multiline
+                rows={4}
+                fullWidth
+                value={editedData.admin_notes || ""}
+                onChange={(e) => setEditedData({...editedData, admin_notes: e.target.value})}
+                disabled={!isEditing}
+              />
+              
+              <Box display="flex" gap={1} mt={2}>
+                {isEditing ? (
+                  <>
+                    <Button
+                      variant="contained"
+                      startIcon={<Save />}
+                      onClick={handleSave}
+                    >
+                      Save
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      startIcon={<Cancel />}
+                      onClick={() => {
+                        setEditedData(report);
+                        setIsEditing(false);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    variant="outlined"
+                    startIcon={<Edit />}
+                    onClick={() => setIsEditing(true)}
+                  >
+                    Edit
+                  </Button>
+                )}
+              </Box>
+            </CardContent>
+          </Card>
 
           <Card variant="outlined" sx={{ mt: 3 }}>
             <CardContent>
@@ -254,25 +355,25 @@ const AdminReportDetails = () => {
                 <ListItem>
                   <ListItemText
                     primary="Report ID"
-                    secondary={`#${report.id.slice(0, 8)}`}
+                    secondary={`#${report.id?.slice(0, 8) || 'N/A'}`}
                   />
                 </ListItem>
                 <ListItem>
                   <ListItemText
                     primary="Submitted By"
-                    secondary={report.user_email}
+                    secondary={getUserEmail(report)}
                   />
                 </ListItem>
                 <ListItem>
                   <ListItemText
                     primary="Date Submitted"
-                    secondary={new Date(report.created_at).toLocaleString()}
+                    secondary={report.created_at ? new Date(report.created_at).toLocaleString() : 'N/A'}
                   />
                 </ListItem>
                 <ListItem>
                   <ListItemText
                     primary="Last Updated"
-                    secondary={new Date(report.updated_at).toLocaleString()}
+                    secondary={report.updated_at ? new Date(report.updated_at).toLocaleString() : 'N/A'}
                   />
                 </ListItem>
               </List>

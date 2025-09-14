@@ -21,7 +21,7 @@ class NotificationType(enum.Enum):
 class User(db.Model):
     __tablename__ = "users"
 
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     first_name = db.Column(db.String(50), nullable=False)
     last_name = db.Column(db.String(50), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
@@ -29,6 +29,11 @@ class User(db.Model):
     role = db.Column(db.String(50), nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
     is_admin = db.Column(Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    signup_otp = db.Column(db.String(6), nullable=True)
+    signup_otp_expiry = db.Column(db.DateTime, nullable=True)
+    is_verified = db.Column(db.Boolean, default=False)
 
     otp = db.Column(db.String(6), nullable=True)
     otp_expiry = db.Column(db.DateTime, nullable=True)
@@ -428,6 +433,64 @@ class Message(db.Model):
             'response_admin_id': self.response_admin_id,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat(),
+            'user': self.user.to_dict() if self.user else None,
+            'assigned_admin': self.assigned_admin.to_dict() if self.assigned_admin else None,
+            'response_admin': self.response_admin.to_dict() if self.response_admin else None
+        }
+
+class ContactMessage(db.Model):
+    __tablename__ = 'contact_messages'
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), nullable=False)
+    subject = db.Column(db.String(200), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    ticket_number = db.Column(db.String(20), unique=True, nullable=False)
+    status = db.Column(db.String(20), default='new')  # new, in_progress, resolved, closed, reopened
+    priority = db.Column(db.String(20), default='normal')  # low, normal, high, urgent
+
+    # Relations
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete="SET NULL"), nullable=True)
+    assigned_admin_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete="SET NULL"), nullable=True)
+    response_admin_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete="SET NULL"), nullable=True)
+
+    # Response fields
+    response = db.Column(db.Text, nullable=True)
+    response_date = db.Column(db.DateTime, nullable=True)
+
+    # Reopen tracking
+    reopen_count = db.Column(db.Integer, default=0)
+    reopen_notes = db.Column(db.Text, nullable=True)
+
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    user = db.relationship('User', foreign_keys=[user_id])
+    assigned_admin = db.relationship('User', foreign_keys=[assigned_admin_id])
+    response_admin = db.relationship('User', foreign_keys=[response_admin_id])
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'email': self.email,
+            'subject': self.subject,
+            'message': self.message,
+            'ticket_number': self.ticket_number,
+            'status': self.status,
+            'priority': self.priority,
+            'user_id': self.user_id,
+            'assigned_admin_id': self.assigned_admin_id,
+            'response': self.response,
+            'response_date': self.response_date.isoformat() if self.response_date else None,
+            'response_admin_id': self.response_admin_id,
+            'reopen_count': self.reopen_count,
+            'reopen_notes': self.reopen_notes,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
             'user': self.user.to_dict() if self.user else None,
             'assigned_admin': self.assigned_admin.to_dict() if self.assigned_admin else None,
             'response_admin': self.response_admin.to_dict() if self.response_admin else None

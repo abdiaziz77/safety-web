@@ -28,14 +28,26 @@ import {
   Snackbar,
   Alert,
   useMediaQuery,
-  useTheme
+  useTheme,
+  Card,
+  CardContent,
+  Grid,
+  Avatar,
+  Badge,
+  Divider,
+  alpha
 } from '@mui/material';
 import {
   Visibility,
   Delete,
   Refresh,
   Search,
-  Clear
+  Clear,
+  FilterList,
+  Report,
+  Person,
+  CalendarToday,
+  MoreVert
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
@@ -52,6 +64,14 @@ const statusOptions = [
   'Closed'
 ];
 
+const statusColors = {
+  'Pending': '#ff9800',
+  'In Progress': '#2196f3',
+  'Resolved': '#4caf50',
+  'Rejected': '#f44336',
+  'Closed': '#9e9e9e'
+};
+
 const ReportsList = () => {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -65,6 +85,7 @@ const ReportsList = () => {
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   useEffect(() => {
     fetchReports();
@@ -88,7 +109,7 @@ const ReportsList = () => {
       setReports(reportsData);
     } catch (error) {
       console.error('Error fetching reports:', error);
-     
+      setSnackbar({ open: true, message: 'Failed to fetch reports', severity: 'error' });
     } finally {
       setLoading(false);
     }
@@ -101,7 +122,9 @@ const ReportsList = () => {
       result = result.filter(report =>
         report.title?.toLowerCase().includes(term) ||
         report.description?.toLowerCase().includes(term) ||
-        report.user_email?.toLowerCase().includes(term) ||
+        (report.author?.email?.toLowerCase().includes(term)) ||
+        (report.author?.first_name?.toLowerCase().includes(term)) ||
+        (report.author?.last_name?.toLowerCase().includes(term)) ||
         report.report_type?.toLowerCase().includes(term)
       );
     }
@@ -120,7 +143,7 @@ const ReportsList = () => {
       fetchReports();
     } catch (error) {
       console.error('Error deleting report:', error);
-     
+      setSnackbar({ open: true, message: 'Failed to delete report', severity: 'error' });
     } finally {
       setOpenDeleteDialog(false);
       setReportToDelete(null);
@@ -137,7 +160,7 @@ const ReportsList = () => {
       fetchReports();
     } catch (error) {
       console.error('Error updating status:', error.response?.data || error.message);
-      
+      setSnackbar({ open: true, message: 'Failed to update status', severity: 'error' });
     }
   };
 
@@ -145,185 +168,433 @@ const ReportsList = () => {
     setSnackbar({ ...snackbar, open: false });
   };
 
+  // Function to get user display info from author object
+  const getUserDisplayInfo = (report) => {
+    // Check if author exists and has email
+    if (report.author?.email && report.author.email.trim() !== '') {
+      return report.author.email;
+    }
+    
+    // Fallback to name if available
+    if (report.author?.first_name || report.author?.last_name) {
+      return `${report.author.first_name || ''} ${report.author.last_name || ''}`.trim();
+    }
+    
+    // Final fallback
+    return 'Anonymous';
+  };
+
+  // Function to get initials for avatar from author object
+  const getInitials = (report) => {
+    if (report.author?.first_name && report.author?.last_name) {
+      return `${report.author.first_name[0]}${report.author.last_name[0]}`.toUpperCase();
+    }
+    if (report.author?.email) {
+      return report.author.email[0].toUpperCase();
+    }
+    return 'A';
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
+        <Box textAlign="center">
+          <CircularProgress size={60} thickness={4} sx={{ mb: 2, color: theme.palette.primary.main }} />
+          <Typography variant="h6" color="textSecondary">
+            Loading Reports...
+          </Typography>
+        </Box>
       </Box>
     );
   }
 
   return (
     <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} flexDirection={{ xs: 'column', sm: 'row' }} gap={2}>
-        <Typography variant="h4" fontWeight="bold" sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }}>
-          Reports Management
-        </Typography>
+      {/* Header Section */}
+      <Card 
+        elevation={0} 
+        sx={{ 
+          mb: 3, 
+          background: 'white',
+          color: 'black',
+          borderRadius: 2
+        }}
+      >
+        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+          <Box display="flex" justifyContent="space-between" alignItems="center" flexDirection={{ xs: 'column', sm: 'row' }} gap={2}>
+            <Box>
+              <Typography variant="h4" fontWeight="bold" sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }}>
+                Reports Management
+              </Typography>
+              <Typography variant="body1" sx={{ opacity: 0.9, mt: 0.5 }}>
+                Manage and monitor all safety reports
+              </Typography>
+            </Box>
+            <Box display="flex" gap={1}>
+              <Tooltip title="Refresh">
+                <IconButton 
+                  onClick={fetchReports} 
+                  size={isMobile ? "small" : "medium"}
+                  sx={{ color: 'white', backgroundColor: alpha('#fff', 0.1), '&:hover': { backgroundColor: alpha('#fff', 0.2) } }}
+                >
+                  <Refresh />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          </Box>
+        </CardContent>
+      </Card>
+
+      {/* Stats Overview */}
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        {statusOptions.filter(s => s !== 'All').map(status => (
+          <Grid item xs={6} sm={4} md={2.4} key={status}>
+            <Card 
+              elevation={1} 
+              sx={{ 
+                textAlign: 'center', 
+                p: 2,
+                borderRadius: 2,
+                borderLeft: `4px solid ${statusColors[status]}`,
+                transition: 'transform 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: theme.shadows[4]
+                }
+              }}
+            >
+              <Box
+                sx={{
+                  display: 'inline-flex',
+                  borderRadius: '50%',
+                  p: 1,
+                  mb: 1,
+                  backgroundColor: alpha(statusColors[status], 0.1)
+                }}
+              >
+                <Report sx={{ color: statusColors[status] }} />
+              </Box>
+              <Typography variant="h5" fontWeight="bold">
+                {reports.filter(r => r.status === status).length}
+              </Typography>
+              <Typography variant="body2" color="textSecondary">
+                {status}
+              </Typography>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+
+      {/* Filters Section */}
+      <Card elevation={2} sx={{ mb: 3, borderRadius: 2 }}>
+        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+          <Box display="flex" gap={2} flexWrap="wrap" flexDirection={{ xs: 'column', sm: 'row' }}>
+            <TextField
+              variant="outlined"
+              size="small"
+              placeholder="Search reports..."
+              InputProps={{
+                startAdornment: <Search color="action" sx={{ mr: 1 }} />
+              }}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              sx={{ 
+                minWidth: { xs: '100%', sm: 250 },
+                flexGrow: 1
+              }}
+            />
+
+            <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 180 } }}>
+              <InputLabel>Status Filter</InputLabel>
+              <Select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                label="Status Filter"
+                startAdornment={<FilterList sx={{ mr: 1, color: 'text.secondary' }} />}
+              >
+                {statusOptions.map(status => (
+                  <MenuItem key={status} value={status}>{status}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {searchTerm && (
+              <Button
+                variant="outlined"
+                startIcon={<Clear />}
+                onClick={() => setSearchTerm('')}
+                sx={{ width: { xs: '100%', sm: 'auto' } }}
+              >
+                Clear
+              </Button>
+            )}
+          </Box>
+        </CardContent>
+      </Card>
+
+      {/* Reports Table/Cards */}
+      {isMobile ? (
+        // Mobile Card View
         <Box>
-          <Tooltip title="Refresh">
-            <IconButton onClick={fetchReports} size={isMobile ? "small" : "medium"}>
-              <Refresh />
-            </IconButton>
-          </Tooltip>
+          {filteredReports.length > 0 ? (
+            filteredReports.map((report) => (
+              <Card key={report.id} sx={{ mb: 2, borderRadius: 2, overflow: 'hidden' }}>
+                <CardContent sx={{ p: 2 }}>
+                  <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1}>
+                    <Typography variant="h6" noWrap sx={{ maxWidth: '70%' }}>
+                      {report.title || 'No title'}
+                    </Typography>
+                    <Chip 
+                      label={report.report_type || 'Unknown'} 
+                      size="small" 
+                      color="primary"
+                      variant="outlined"
+                    />
+                  </Box>
+                  
+                  <Box display="flex" alignItems="center" gap={1} mb={1}>
+                    <Avatar sx={{ width: 24, height: 24, fontSize: '0.7rem', bgcolor: theme.palette.primary.main }}>
+                      {getInitials(report)}
+                    </Avatar>
+                    <Typography variant="body2" color="textSecondary">
+                      {getUserDisplayInfo(report)}
+                    </Typography>
+                  </Box>
+                  
+                  <Box display="flex" alignItems="center" gap={1} mb={2}>
+                    <CalendarToday sx={{ fontSize: 16, color: 'text.secondary' }} />
+                    <Typography variant="body2" color="textSecondary">
+                      {report.created_at ? new Date(report.created_at).toLocaleDateString() : '-'}
+                    </Typography>
+                  </Box>
+                  
+                  <Box display="flex" justifyContent="space-between" alignItems="center">
+                    <Select
+                      value={report.status || 'Pending'}
+                      onChange={(e) => handleStatusChange(report.id, e.target.value)}
+                      size="small"
+                      sx={{ 
+                        minWidth: 120,
+                        backgroundColor: alpha(statusColors[report.status] || '#ff9800', 0.1),
+                        '& .MuiSelect-select': {
+                          py: 0.5,
+                          color: statusColors[report.status] || '#ff9800',
+                          fontWeight: 'medium'
+                        },
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          border: 'none'
+                        }
+                      }}
+                    >
+                      {statusOptions.filter(s => s !== 'All').map(status => (
+                        <MenuItem key={status} value={status}>
+                          {status}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    
+                    <Box>
+                      <Tooltip title="View Details">
+                        <IconButton
+                          size="small"
+                          onClick={() => navigate(`/admin/dashboard/reports/${report.id}`)}
+                          sx={{ mr: 1 }}
+                        >
+                          <Visibility color="primary" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Delete">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDeleteClick(report)}
+                        >
+                          <Delete color="error" />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <Card sx={{ textAlign: 'center', p: 4, borderRadius: 2 }}>
+              <Report sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
+              <Typography variant="h6" color="textSecondary" gutterBottom>
+                No reports found
+              </Typography>
+              <Typography variant="body2" color="textSecondary">
+                Try adjusting your search or filter criteria
+              </Typography>
+            </Card>
+          )}
         </Box>
-      </Box>
-
-      <Box display="flex" gap={2} mb={3} flexWrap="wrap" flexDirection={{ xs: 'column', sm: 'row' }}>
-        <TextField
-          variant="outlined"
-          size="small"
-          placeholder="Search reports..."
-          InputProps={{
-            startAdornment: <Search color="action" sx={{ mr: 1 }} />
-          }}
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          sx={{ minWidth: { xs: '100%', sm: 250 } }}
-        />
-
-        <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 180 } }}>
-          <InputLabel>Status</InputLabel>
-          <Select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            label="Status"
-          >
-            {statusOptions.map(status => (
-              <MenuItem key={status} value={status}>{status}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        {searchTerm && (
-          <Button
-            variant="outlined"
-            startIcon={<Clear />}
-            onClick={() => setSearchTerm('')}
-            sx={{ width: { xs: '100%', sm: 'auto' } }}
-          >
-            Clear Search
-          </Button>
-        )}
-      </Box>
-
-      <Paper elevation={3} sx={{ width: '100%', overflow: 'hidden' }}>
-        <TableContainer sx={{ maxHeight: { xs: 500, sm: 'none' }, overflowX: 'auto' }}>
-          <Table stickyHeader={isMobile} sx={{ minWidth: isMobile ? 800 : 'auto' }}>
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>ID</TableCell>
-                <TableCell>Title</TableCell>
-                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>User</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell sx={{ display: { xs: 'none', lg: 'table-cell' } }}>Date</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredReports.length > 0 ? (
-                filteredReports.map((report) => (
-                  <TableRow key={report.id}>
-                    <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
-                      #{report.id?.slice(0, 8) || 'N/A'}
-                    </TableCell>
-                    <TableCell sx={{ maxWidth: { xs: 120, sm: 'none' } }}>
-                      <Typography noWrap sx={{ maxWidth: { xs: 120, sm: 'none' } }}>
-                        {report.title || 'No title'}
+      ) : (
+        // Desktop Table View
+        <Card elevation={2} sx={{ borderRadius: 2, overflow: 'hidden' }}>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow sx={{ backgroundColor: theme.palette.grey[50] }}>
+                  <TableCell sx={{ fontWeight: 'bold', py: 2 }}>ID</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', py: 2 }}>Title</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', py: 2 }}>Author</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', py: 2 }}>Type</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', py: 2 }}>Date</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', py: 2 }}>Status</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', py: 2 }}>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filteredReports.length > 0 ? (
+                  filteredReports.map((report) => (
+                    <TableRow 
+                      key={report.id} 
+                      hover 
+                      sx={{ 
+                        '&:last-child td, &:last-child th': { border: 0 },
+                        transition: 'background-color 0.2s'
+                      }}
+                    >
+                      <TableCell sx={{ fontFamily: 'monospace' }}>
+                        #{report.id?.slice(0, 8) || 'N/A'}
+                      </TableCell>
+                      <TableCell>
+                        <Typography fontWeight="medium">
+                          {report.title || 'No title'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Avatar sx={{ width: 32, height: 32, fontSize: '0.8rem', bgcolor: theme.palette.primary.main }}>
+                            {getInitials(report)}
+                          </Avatar>
+                          {getUserDisplayInfo(report)}
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Chip 
+                          label={report.report_type || 'Unknown'} 
+                          size="small" 
+                          color="primary"
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {report.created_at ? new Date(report.created_at).toLocaleDateString() : '-'}
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          value={report.status || 'Pending'}
+                          onChange={(e) => handleStatusChange(report.id, e.target.value)}
+                          size="small"
+                          sx={{ 
+                            minWidth: 120,
+                            backgroundColor: alpha(statusColors[report.status] || '#ff9800', 0.1),
+                            '& .MuiSelect-select': {
+                              py: 0.5,
+                              color: statusColors[report.status] || '#ff9800',
+                              fontWeight: 'medium'
+                            },
+                            '& .MuiOutlinedInput-notchedOutline': {
+                              border: 'none'
+                            }
+                          }}
+                        >
+                          {statusOptions.filter(s => s !== 'All').map(status => (
+                            <MenuItem key={status} value={status}>
+                              {status}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        <Box display="flex" gap={1}>
+                          <Tooltip title="View Details">
+                            <IconButton
+                              size="small"
+                              onClick={() => navigate(`/admin/dashboard/reports/${report.id}`)}
+                              sx={{ 
+                                backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                                '&:hover': { backgroundColor: alpha(theme.palette.primary.main, 0.2) }
+                              }}
+                            >
+                              <Visibility color="primary" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Delete">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleDeleteClick(report)}
+                              sx={{ 
+                                backgroundColor: alpha(theme.palette.error.main, 0.1),
+                                '&:hover': { backgroundColor: alpha(theme.palette.error.main, 0.2) }
+                              }}
+                            >
+                              <Delete color="error" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                      <Report sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
+                      <Typography variant="h6" color="textSecondary" gutterBottom>
+                        No reports found
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        Try adjusting your search or filter criteria
                       </Typography>
                     </TableCell>
-                    <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
-                      {report.user_email || 'Anonymous'}
-                    </TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={report.report_type || 'Unknown'} 
-                        size="small" 
-                        sx={{ 
-                          fontSize: { xs: '0.7rem', sm: 'inherit' },
-                          maxWidth: { xs: 80, sm: 'none' }
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell sx={{ display: { xs: 'none', lg: 'table-cell' } }}>
-                      {report.created_at ? new Date(report.created_at).toLocaleDateString() : '-'}
-                    </TableCell>
-                    <TableCell>
-                      <Select
-                        value={report.status || 'Pending'}
-                        onChange={(e) => handleStatusChange(report.id, e.target.value)}
-                        size="small"
-                        sx={{ 
-                          minWidth: { xs: 90, sm: 120 },
-                          fontSize: { xs: '0.7rem', sm: 'inherit' }
-                        }}
-                      >
-                        {statusOptions.filter(s => s !== 'All').map(status => (
-                          <MenuItem 
-                            key={status} 
-                            value={status}
-                            sx={{ fontSize: { xs: '0.7rem', sm: 'inherit' } }}
-                          >
-                            {status}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <Box display="flex" gap={1}>
-                        <Tooltip title="View Details">
-                          <IconButton
-                            size="small"
-                            onClick={() => navigate(`/admin/dashboard/reports/${report.id}`)}
-                          >
-                            <Visibility color="primary" fontSize={isMobile ? "small" : "medium"} />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Delete">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleDeleteClick(report)}
-                          >
-                            <Delete color="error" fontSize={isMobile ? "small" : "medium"} />
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
-                    </TableCell>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={7} align="center">
-                    <Typography variant="body1" color="textSecondary" py={3}>
-                      No reports found
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Card>
+      )}
 
       <Dialog
         open={openDeleteDialog}
         onClose={() => setOpenDeleteDialog(false)}
         fullScreen={isMobile}
+        PaperProps={{ sx: { borderRadius: isMobile ? 0 : 2 } }}
       >
-        <DialogTitle>Confirm Delete</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Are you sure you want to delete the report "{reportToDelete?.title}"? This action cannot be undone.
-          </DialogContentText>
+        <DialogTitle sx={{ backgroundColor: theme.palette.grey[50], borderBottom: 1, borderColor: 'divider' }}>
+          Confirm Delete
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          <Box display="flex" alignItems="center" gap={2} mb={2}>
+            <Avatar sx={{ bgcolor: theme.palette.error.main }}>
+              <Delete />
+            </Avatar>
+            <Box>
+              <Typography variant="h6">Delete Report</Typography>
+              <Typography variant="body2" color="textSecondary">
+                This action cannot be undone
+              </Typography>
+            </Box>
+          </Box>
+          <Typography variant="body1">
+            Are you sure you want to delete the report "{reportToDelete?.title}"?
+          </Typography>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDeleteDialog(false)}>Cancel</Button>
+        <DialogActions sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
+          <Button 
+            onClick={() => setOpenDeleteDialog(false)}
+            variant="outlined"
+          >
+            Cancel
+          </Button>
           <Button
             onClick={handleDeleteConfirm}
             color="error"
             variant="contained"
+            startIcon={<Delete />}
           >
-            Delete
+            Delete Report
           </Button>
         </DialogActions>
       </Dialog>
@@ -337,7 +608,9 @@ const ReportsList = () => {
         <Alert
           onClose={handleCloseSnackbar}
           severity={snackbar.severity}
-          sx={{ width: '100%' }}
+          sx={{ width: '100%', borderRadius: 2 }}
+          variant="filled"
+          elevation={6}
         >
           {snackbar.message}
         </Alert>

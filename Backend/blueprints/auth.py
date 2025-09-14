@@ -5,10 +5,12 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, User
 from utils import (
     send_registration_email,
+    send_verification_email,
     send_otp_email,
     login_required,
     admin_required,
-    notify_new_user
+    notify_new_user,
+    send_new_user_registration_email_to_admin  # Add this import
 )
 
 auth_bp = Blueprint('auth', __name__)
@@ -26,46 +28,119 @@ def signup():
         return jsonify({"message": "Email already registered"}), 400
 
     try:
+        # Generate OTP for verification
+        signup_otp = str(random.randint(100000, 999999))
+        
         user = User(
             first_name=data['firstName'],
             last_name=data['lastName'],
             email=data['email'],
             phone=data['phone'],
             role=data['role'],
-            password_hash=generate_password_hash(data['password'])
+            password_hash=generate_password_hash(data['password']),
+            signup_otp=signup_otp,
+            signup_otp_expiry=datetime.now() + timedelta(minutes=10),
+            is_verified=False  # User is not verified yet
         )
 
         db.session.add(user)
         db.session.commit()
 
-        # Send welcome email (non-blocking)
+        # Send verification email to the new user
         try:
-            send_registration_email(user.email, user.first_name)
+            send_verification_email(user.email, user.first_name, signup_otp)
         except Exception as e:
-            print("Failed to send registration email:", e)
-
-        # ✅ Create NEW_USER notification for all admins
-        try:
-            notify_new_user(user)
-        except Exception as e:
-            print("Failed to create NEW_USER notification:", e)
+            print("Failed to send verification email:", e)
+            db.session.rollback()
+            return jsonify({"message": "Failed to send verification email"}), 500
 
         return jsonify({
-            "message": "User registered successfully",
-            "user": {
-                "id": user.id,
-                "email": user.email,
-                "firstName": user.first_name,
-                "lastName": user.last_name,
-                "role": user.role
-            }
+            "message": "User registered successfully. Please check your email for verification code.",
+            "email": user.email,
+            "requires_verification": True
         }), 201
 
     except Exception as e:
         db.session.rollback()
         return jsonify({"message": str(e)}), 500
 
-# ------------------ LOGIN ------------------
+# ------------------ VERIFY SIGNUP ------------------
+@auth_bp.route('/verify-signup', methods=['POST'])
+def verify_signup():
+    data = request.json
+    email, otp = data.get('email'), data.get('otp')
+    
+    if not email or not otp:
+        return jsonify({"message": "Email and OTP are required"}), 400
+        
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"message": "User not found"}), 404
+        
+    if not user.signup_otp:
+        return jsonify({"message": "User already verified or invalid request"}), 400
+        
+    if user.signup_otp != otp:
+        return jsonify({"message": "Invalid verification code"}), 400
+        
+    if datetime.now() > user.signup_otp_expiry:
+        return jsonify({"message": "Verification code expired"}), 400
+        
+    # Mark user as verified and clear OTP
+    user.is_verified = True
+    user.signup_otp = None
+    user.signup_otp_expiry = None
+    db.session.commit()
+    
+    # Send welcome email
+    try:
+        send_registration_email(user.email, user.first_name)
+    except Exception as e:
+        print("Failed to send welcome email:", e)
+    
+    # Notify admins about new user
+    try:
+        notify_new_user(user)
+        send_new_user_registration_email_to_admin(user)
+    except Exception as e:
+        print("Failed to notify admins:", e)
+    
+    return jsonify({
+        "message": "Email verified successfully. You can now login.",
+        "verified": True
+    }), 200
+
+# ------------------ RESEND VERIFICATION ------------------
+@auth_bp.route('/resend-verification', methods=['POST'])
+def resend_verification():
+    data = request.json
+    email = data.get('email')
+    
+    if not email:
+        return jsonify({"message": "Email is required"}), 400
+        
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"message": "User not found"}), 404
+        
+    if user.is_verified:
+        return jsonify({"message": "User already verified"}), 400
+        
+    # Generate new OTP
+    new_otp = str(random.randint(100000, 999999))
+    user.signup_otp = new_otp
+    user.signup_otp_expiry = datetime.now() + timedelta(minutes=10)
+    db.session.commit()
+    
+    # Resend verification email
+    try:
+        send_verification_email(user.email, user.first_name, new_otp)
+        return jsonify({"message": "Verification code sent to your email"}), 200
+    except Exception as e:
+        print("Failed to resend verification email:", e)
+        return jsonify({"message": "Failed to resend verification email"}), 500
+
+# Update the login function to check verification status
 @auth_bp.route('/login', methods=['POST'])
 def login():
     data = request.json
@@ -75,6 +150,14 @@ def login():
     user = User.query.filter_by(email=data['email']).first()
     if not user or not user.check_password(data['password']):
         return jsonify({"message": "Invalid email or password"}), 401
+        
+    # Check if user is verified
+    if not user.is_verified:
+        return jsonify({
+            "message": "Email not verified. Please check your email for verification code.",
+            "requires_verification": True,
+            "email": user.email
+        }), 401
 
     session['user_id'] = user.id
     session['user_role'] = user.role

@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import {
@@ -17,7 +17,11 @@ import {
   Typography,
   Box,
   Divider,
-  LinearProgress
+  LinearProgress,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  IconButton as MuiIconButton
 } from "@mui/material";
 import {
   Shield,
@@ -30,7 +34,8 @@ import {
   Phone,
   Lock,
   CheckCircleOutline,
-  CancelOutlined
+  CancelOutlined,
+  Close
 } from "@mui/icons-material";
 
 // Password Requirement Component
@@ -91,6 +96,8 @@ const SignUp = () => {
     confirmPassword: "",
     agreeTerms: false
   });
+  
+  const navigate = useNavigate();
 
   // Calculate password strength
   useEffect(() => {
@@ -155,33 +162,36 @@ const SignUp = () => {
           role: formData.role,
           password: formData.password,
         }),
-        credentials: "include", // for cookies if needed
+        credentials: "include",
       });
 
-     if (res.ok) {
-  toast.success("Registration successful! Please login.");
-
-  
- 
-
-  // Clear form
-  setFormData({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    role: "",
-    password: "",
-    confirmPassword: "",
-    agreeTerms: false,
-  });
-
-  // Redirect to login
-  setTimeout(() => {
-    window.location.href = "/login";
-  }, 1500);
-}
-else {
+      if (res.ok) {
+        const responseData = await res.json();
+        
+        if (responseData.requires_verification) {
+          // Redirect to verification page with email as state
+          navigate("/signupvarification", { 
+            state: { email: formData.email } 
+          });
+        } else {
+          toast.success("Registration successful! Please login.");
+          // Clear form
+          setFormData({
+            firstName: "",
+            lastName: "",
+            email: "",
+            phone: "",
+            role: "",
+            password: "",
+            confirmPassword: "",
+            agreeTerms: false,
+          });
+          // Redirect to login
+          setTimeout(() => {
+            navigate("/login");
+          }, 1500);
+        }
+      } else {
         const errorData = await res.json();
         toast.error(errorData.message || "Registration failed");
       }
@@ -340,7 +350,6 @@ else {
                 label="Account Type"
               >
                 <MenuItem value="citizen">Citizen</MenuItem>
-                <MenuItem value="responder">Emergency Responder</MenuItem>
               </Select>
             </FormControl>
 

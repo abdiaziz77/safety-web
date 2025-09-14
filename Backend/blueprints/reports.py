@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, session
 from datetime import datetime
 from models import Report, ReportMedia, User, db
-from utils import admin_required, login_required, notify_new_report, notify_report_status_update
+from utils import admin_required, login_required, notify_new_report, notify_report_status_update, send_report_confirmation_email, send_admin_report_notification
 import uuid
 import os
 from werkzeug.utils import secure_filename
@@ -22,6 +22,10 @@ def create_report():
         return jsonify({"error": "Missing required fields"}), 400
     
     try:
+        user = User.query.get(session['user_id'])
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+            
         report = Report(
             id=str(uuid.uuid4()),
             user_id=session['user_id'],
@@ -49,6 +53,17 @@ def create_report():
         
         # ✅ Notify admins about new report
         notify_new_report(report)
+        
+        # ✅ Send confirmation email to user
+        send_report_confirmation_email(
+            user_email=user.email,
+            user_name=f"{user.first_name} {user.last_name}",
+            report_title=report.title,
+            report_type=report.report_type
+        )
+        
+        # ✅ Send notification to admin
+        send_admin_report_notification(report, user)
         
         return jsonify(report.to_dict()), 201
     except Exception as e:

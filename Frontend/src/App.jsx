@@ -51,11 +51,13 @@ import EmergencyPage from "./pages/public_pages/Emergency";
 import CommunityPage from "./pages/public_pages/Comunity";
 import FaqPage from "./pages/public_pages/Faqs";
 import FeedbackPage from "./pages/public_pages/FeedBack";
-import ContactUsPage from "./pages/public_pages/ContactUs";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import CalendarPage from "./pages/user_pages/Calender";
 import MessagePage from "./pages/user_pages/Message";
 import AdminMessages from "./pages/Admin_pages/AdminMessage";
+import SignupVerification from "./auth/SignupVerification";
+import Alerts from "./pages/public_pages/Alerts";
+
 
 
 
@@ -73,11 +75,11 @@ function App() {
          <Route element={<PublicLayout />}>
             <Route path="/" element={<Home />} />
             <Route path="/about" element={<About />} />
+            <Route path="/alerts" element={<Alerts />} />
             <Route path="/safety-tips" element={<SafetyTips />} />
             <Route path="/emergency" element={<EmergencyPage />} />
             <Route path="/community" element={<CommunityPage />} />
             <Route path="/feedback" element={<FeedbackPage />} />
-             <Route path="/contact" element={<ContactUsPage />} />
             <Route path="/faqs" element={<FaqPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/forgotpassword" element={<ForgotPassword />} />
@@ -85,6 +87,7 @@ function App() {
             <Route path="/reset" element={<ResetPassword />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/admin" element={<AdminLogin />} />
+            <Route path="/signupvarification" element={<SignupVerification />} />
           </Route>
 
        {/* User routes (protected) */}

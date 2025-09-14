@@ -42,7 +42,8 @@ import {
   Image as ImageIcon,
   Videocam,
   Mic,
-  LocationOn
+  LocationOn,
+  Person
 } from "@mui/icons-material";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -52,6 +53,7 @@ const MyReportsPage = () => {
   const [selectedReport, setSelectedReport] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  const [userInfo, setUserInfo] = useState(null);
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -74,6 +76,9 @@ const MyReportsPage = () => {
           navigate("/login");
           return;
         }
+
+        // Store user information
+        setUserInfo(authCheck.data.user);
 
         // ✅ Fetch reports
         const response = await axios.get(
@@ -150,6 +155,20 @@ const MyReportsPage = () => {
     setSelectedReport(null);
   };
 
+  const getUserDisplayName = (reportAuthor) => {
+    if (!reportAuthor) return "Anonymous";
+    
+    if (reportAuthor.first_name && reportAuthor.last_name) {
+      return `${reportAuthor.first_name} ${reportAuthor.last_name}`;
+    } else if (reportAuthor.name) {
+      return reportAuthor.name;
+    } else if (reportAuthor.email) {
+      return reportAuthor.email;
+    }
+    
+    return "Anonymous";
+  };
+
   const ReportDetailsDialog = ({ report, open, onClose, loading }) => {
     if (!report) return null;
 
@@ -221,6 +240,17 @@ const MyReportsPage = () => {
                           }
                           size="small"
                         />
+                      </Grid>
+                      {/* User Information */}
+                      <Grid item xs={12}>
+                        <Box display="flex" alignItems="center" gap={1} mb={1}>
+                          <Person color="primary" fontSize="small" />
+                          <Typography variant="subtitle2">Submitted by:</Typography>
+                        </Box>
+                        <Typography>
+                          {getUserDisplayName(report.author)}
+                          {report.author?.email && ` (${report.author.email})`}
+                        </Typography>
                       </Grid>
                     </Grid>
                   </CardContent>
@@ -370,7 +400,7 @@ const MyReportsPage = () => {
         <Card variant="outlined" sx={{ maxWidth: 600, mx: "auto" }}className="bg-blue-100">
           <CardContent sx={{ textAlign: "center", py: 4 }}>
             <Typography variant="h6" gutterBottom>
-              You haven't submitted any reports yet
+              {userInfo ? `Hi ${getUserDisplayName(userInfo)}, you haven't submitted any reports yet` : "You haven't submitted any reports yet"}
             </Typography>
             <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
               Submit your first report to get started
@@ -391,7 +421,7 @@ const MyReportsPage = () => {
 
   return (
     <div className="min-h-screen bg-blue-100">
-  <div className="max-w-4xl mx-auto p-4 md:p-6 pt-4 pb-6 md:pt-6 md:pb-8">
+      <div className="max-w-4xl mx-auto p-4 md:p-6 pt-4 pb-6 md:pt-6 md:pb-8">
         <Box
           display="flex"
           justifyContent="space-between"
@@ -400,9 +430,20 @@ const MyReportsPage = () => {
           gap={isMobile ? 2 : 0}
           mb={4}
         >
-          <Typography variant="h4" fontWeight="bold" textAlign={isMobile ? "center" : "left"}>
-            My Reports
-          </Typography>
+          <Box>
+            <Typography variant="h4" fontWeight="bold" textAlign={isMobile ? "center" : "left"}>
+              My Reports
+            </Typography>
+            {userInfo && (
+              <Typography variant="subtitle1" color="textSecondary">
+                {userInfo.first_name && userInfo.last_name 
+                  ? `Welcome, ${userInfo.first_name} ${userInfo.last_name}` 
+                  : userInfo.name 
+                    ? `Welcome, ${userInfo.name}` 
+                    : `Welcome, ${userInfo.email}`}
+              </Typography>
+            )}
+          </Box>
           <Button
             variant="contained"
             startIcon={<Add />}
@@ -438,8 +479,12 @@ const MyReportsPage = () => {
                     </Typography>
                   </Box>
                   
+                  <Typography variant="body2" color="textSecondary" mb={1}>
+                    Submitted by: {getUserDisplayName(report.author)}
+                  </Typography>
+                  
                   <Typography variant="body2" color="textSecondary" mb={2}>
-                    Submitted: {report.created_at 
+                    Date: {report.created_at 
                       ? new Date(report.created_at).toLocaleDateString() 
                       : 'N/A'
                     }
@@ -470,6 +515,7 @@ const MyReportsPage = () => {
                   <TableCell>Report ID</TableCell>
                   <TableCell>Title</TableCell>
                   <TableCell>Type</TableCell>
+                  <TableCell>Submitted By</TableCell>
                   <TableCell>Date Submitted</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell>Actions</TableCell>
@@ -482,6 +528,9 @@ const MyReportsPage = () => {
                     <TableCell>{report.title || 'N/A'}</TableCell>
                     <TableCell>
                       <Chip label={report.report_type || 'N/A'} size="small" />
+                    </TableCell>
+                    <TableCell>
+                      {getUserDisplayName(report.author)}
                     </TableCell>
                     <TableCell>
                       {report.created_at 

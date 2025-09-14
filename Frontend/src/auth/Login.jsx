@@ -236,6 +236,21 @@ const Login = () => {
             >
               Emergency Access (No Login Required)
             </Button>
+
+            {/* Divider for Admin Login */}
+            <Divider sx={{ my: 3 }}>Admin Access</Divider>
+
+            {/* Admin Login Button */}
+            <Button
+              component={Link}
+              to="/admin" // Change this route to your admin login page
+              fullWidth
+              variant="contained"
+              color="secondary"
+              startIcon={<Shield />}
+            >
+              Admin
+            </Button>
           </Box>
         </Paper>
       </Box>

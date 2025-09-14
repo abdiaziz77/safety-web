@@ -25,6 +25,7 @@ const AdminAnalytics = () => {
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('30days'); // 7days, 30days, 90days, 1year
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [refreshing, setRefreshing] = useState(false); // Add refreshing state
 
   // Handle window resize for responsiveness
   useEffect(() => {
@@ -38,7 +39,11 @@ const AdminAnalytics = () => {
 
   const fetchData = async () => {
     try {
+      setRefreshing(true); // Set refreshing state to true
       setLoading(true);
+      
+      // Add a 2-second delay before fetching data
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       // Fetch data with error handling for each endpoint
       const fetchReports = axios.get(`${API_BASE_URL}/api/reports/admin/reports`, { withCredentials: true })
@@ -83,6 +88,7 @@ const AdminAnalytics = () => {
       console.error('Failed to fetch analytics data:', err);
     } finally {
       setLoading(false);
+      setRefreshing(false); // Set refreshing state to false
     }
   };
 
@@ -306,10 +312,15 @@ const AdminAnalytics = () => {
             </div>
             <button 
               onClick={fetchData}
-              className="bg-white/80 backdrop-blur-sm border-0 rounded-xl px-4 py-2 text-sm flex items-center justify-center shadow-sm hover:shadow-md transition-shadow w-full md:w-auto"
+              disabled={refreshing}
+              className="bg-white/80 backdrop-blur-sm border-0 rounded-xl px-4 py-2 text-sm flex items-center justify-center shadow-sm hover:shadow-md transition-shadow w-full md:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Download size={16} className="mr-2" />
-              Refresh Data
+              {refreshing ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-600 mr-2"></div>
+              ) : (
+                <Download size={16} className="mr-2" />
+              )}
+              {refreshing ? 'Refreshing...' : 'Refresh Data'}
             </button>
           </div>
         </div>

@@ -1,357 +1,356 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Box,
-  Typography,
-  TextField,
-  Button,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Paper,
-  Grid,
-  Snackbar,
-  Alert,
-  CircularProgress,
-} from '@mui/material';
-import {
+  ArrowLeft,
   Save,
-  ArrowBack,
-  Warning,
-  Error,
-  CheckCircle,
-  NotificationsActive,
-} from '@mui/icons-material';
+  AlertTriangle,
+  MapPin,
+  Calendar,
+  Clock,
+  Loader2,
+  AlertCircle,
+  CheckCircle
+} from 'lucide-react';
 
-const formatDateForInput = (dateStr) => {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  return d.toISOString().slice(0, 16); // for datetime-local
-};
-
-const formatDateForBackend = (dateStr) => {
-  if (!dateStr) return null;
-  const d = new Date(dateStr);
-  return d.toISOString().split('.')[0]; // keep YYYY-MM-DDTHH:mm:ss
-};
-
-const AlertFormPage = () => {
+function AlertFormPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
+  const isEdit = Boolean(id);
+  
+  const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
-  const [alertData, setAlertData] = useState({
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
+  
+  const [formData, setFormData] = useState({
     title: '',
     message: '',
     type: 'General',
     status: 'Active',
-    severity: 'Medium',
+    severity: 'medium',
+    location: '',
     affected_area: '',
-    start_date: new Date().toISOString(),
+    start_date: new Date().toISOString().slice(0, 16),
     end_date: '',
-  });
-  const [errors, setErrors] = useState({});
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success',
+    instructions: '',
+    additional_info: '',
+    source: ''
   });
 
   useEffect(() => {
-    if (id) {
-      const fetchAlert = async () => {
-        try {
-          const response = await axios.get(
-            `http://127.0.0.1:5000/api/alerts/admin/alerts/${id}`,
-            { withCredentials: true }
-          );
-          setAlertData(response.data);
-        } catch (error) {
-          console.error('Error fetching alert:', error);
-          setSnackbar({
-            open: true,
-            message: 'Failed to load alert',
-            severity: 'error',
-          });
-        } finally {
-          setLoading(false);
-        }
-      };
+    if (isEdit) {
       fetchAlert();
-    } else {
-      setLoading(false);
     }
   }, [id]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setAlertData({ ...alertData, [name]: value });
-    if (errors[name]) {
-      setErrors({ ...errors, [name]: '' });
+  const fetchAlert = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`/api/alerts/admin/alerts/${id}`);
+      const alert = response.data;
+      
+      setFormData({
+        title: alert.title || '',
+        message: alert.message || '',
+        type: alert.type || 'General',
+        status: alert.status || 'Active',
+        severity: alert.severity || 'medium',
+        location: alert.location || '',
+        affected_area: alert.affected_area || '',
+        start_date: alert.start_date ? new Date(alert.start_date).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
+        end_date: alert.end_date ? new Date(alert.end_date).toISOString().slice(0, 16) : '',
+        instructions: alert.instructions || '',
+        additional_info: alert.additional_info || '',
+        source: alert.source || ''
+      });
+    } catch (err) {
+      console.error('Error fetching alert:', err);
+      setError('Failed to load alert');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const validateForm = () => {
-    const newErrors = {};
-    if (!alertData.title.trim()) newErrors.title = 'Title is required';
-    if (!alertData.message.trim()) newErrors.message = 'Message is required';
-    if (!alertData.type) newErrors.type = 'Type is required';
-    if (!alertData.status) newErrors.status = 'Status is required';
-    return newErrors;
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const formErrors = validateForm();
-    if (Object.keys(formErrors).length > 0) {
-      setErrors(formErrors);
-      return;
-    }
-
     setSaving(true);
+    setError(null);
+    
     try {
-      const payload = {
-        ...alertData,
-        start_date: formatDateForBackend(alertData.start_date),
-        end_date: alertData.end_date ? formatDateForBackend(alertData.end_date) : null,
-      };
-
-      if (id) {
-        await axios.put(
-          `http://127.0.0.1:5000/api/alerts/admin/alerts/${id}`,
-          payload,
-          { withCredentials: true }
-        );
-        setSnackbar({
-          open: true,
-          message: 'Alert updated successfully',
-          severity: 'success',
-        });
+      if (isEdit) {
+        await axios.put(`/api/alerts/admin/alerts/${id}`, formData);
       } else {
-        await axios.post(
-          `http://127.0.0.1:5000/api/alerts/admin/alerts`,
-          payload,
-          { withCredentials: true }
-        );
-        setSnackbar({
-          open: true,
-          message: 'Alert created successfully',
-          severity: 'success',
-        });
-        navigate('/admin/dashboard/alerts');
+        await axios.post('/api/alerts/admin/alerts', formData);
       }
-    } catch (error) {
-      console.error('Error saving alert:', error);
-      setSnackbar({
-        open: true,
-        message: 'Failed to save alert',
-        severity: 'error',
-      });
+      
+      setSuccess(true);
+      setTimeout(() => {
+        navigate('/admin/alerts');
+      }, 1500);
+    } catch (err) {
+      console.error('Error saving alert:', err);
+      setError(err.response?.data?.error || 'Failed to save alert');
     } finally {
       setSaving(false);
     }
   };
 
-  const getSeverityIcon = () => {
-    switch (alertData.severity) {
-      case 'High':
-        return <Error color="error" />;
-      case 'Critical':
-        return <Warning color="error" />;
-      case 'Medium':
-        return <Warning color="warning" />;
-      case 'Low':
-        return <CheckCircle color="success" />;
-      default:
-        return <NotificationsActive color="info" />;
-    }
-  };
-
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" mt={4}>
-        <CircularProgress />
-      </Box>
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="animate-spin w-8 h-8 text-blue-500" />
+      </div>
     );
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Button
-        startIcon={<ArrowBack />}
-        onClick={() => navigate('/admin/dashboard/alerts')}
-        sx={{ mb: 3 }}
-      >
-        Back to Alerts
-      </Button>
-
-      <Typography variant="h4" gutterBottom>
-        {id ? 'Edit Alert' : 'Create New Alert'}
-      </Typography>
-
-      <Paper elevation={3} sx={{ p: 3 }}>
-        <form onSubmit={handleSubmit}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Title"
-                name="title"
-                value={alertData.title}
-                onChange={handleChange}
-                error={!!errors.title}
-                helperText={errors.title}
-                required
-              />
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Type</InputLabel>
-                <Select
-                  name="type"
-                  value={alertData.type}
-                  onChange={handleChange}
-                  error={!!errors.type}
-                  required
-                >
-                  <MenuItem value="General">General</MenuItem>
-                  <MenuItem value="Emergency">Emergency</MenuItem>
-                  <MenuItem value="Weather">Weather</MenuItem>
-                  <MenuItem value="Security">Security</MenuItem>
-                  <MenuItem value="System">System</MenuItem>
-                  <MenuItem value="Others">Others</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Status</InputLabel>
-                <Select
-                  name="status"
-                  value={alertData.status}
-                  onChange={handleChange}
-                  error={!!errors.status}
-                  required
-                >
-                  <MenuItem value="Active">Active</MenuItem>
-                  <MenuItem value="Inactive">Inactive</MenuItem>
-                  <MenuItem value="Resolved">Resolved</MenuItem>
-                  <MenuItem value="Critical">Critical</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Severity</InputLabel>
-                <Select
-                  name="severity"
-                  value={alertData.severity}
-                  onChange={handleChange}
-                >
-                  <MenuItem value="Low">Low</MenuItem>
-                  <MenuItem value="Medium">Medium</MenuItem>
-                  <MenuItem value="High">High</MenuItem>
-                  <MenuItem value="Critical">Critical</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Affected Area (optional)"
-                name="affected_area"
-                value={alertData.affected_area}
-                onChange={handleChange}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Start Date"
-                type="datetime-local"
-                name="start_date"
-                value={formatDateForInput(alertData.start_date)}
-                onChange={handleChange}
-                InputLabelProps={{
-                  shrink: true,
-                }}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="End Date (optional)"
-                type="datetime-local"
-                name="end_date"
-                value={alertData.end_date ? formatDateForInput(alertData.end_date) : ''}
-                onChange={handleChange}
-                InputLabelProps={{
-                  shrink: true,
-                }}
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Message"
-                name="message"
-                value={alertData.message}
-                onChange={handleChange}
-                multiline
-                rows={4}
-                error={!!errors.message}
-                helperText={errors.message}
-                required
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <Box display="flex" justifyContent="flex-end" gap={2}>
-                <Button
-                  variant="outlined"
-                  onClick={() => navigate('/admin/dashboard/alerts')}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  color="primary"
-                  startIcon={<Save />}
-                  disabled={saving}
-                >
-                  {saving ? 'Saving...' : 'Save Alert'}
-                </Button>
-              </Box>
-            </Grid>
-          </Grid>
-        </form>
-      </Paper>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-      >
-        <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
+    <div className="bg-white rounded-xl shadow-sm p-6">
+      <div className="flex items-center gap-4 mb-6">
+        <button
+          onClick={() => navigate('/admin/dashboard/alerts')}
+          className="p-2 hover:bg-gray-100 rounded-lg"
         >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+        <h2 className="text-2xl font-bold text-gray-800">
+          {isEdit ? 'Edit Alert' : 'Create New Alert'}
+        </h2>
+      </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3 mb-6">
+          <AlertCircle className="h-5 w-5 text-red-500" />
+          <p className="text-red-700">{error}</p>
+          <button onClick={() => setError(null)} className="ml-auto">
+            <AlertCircle className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
+      {success && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3 mb-6">
+          <CheckCircle className="h-5 w-5 text-green-500" />
+          <p className="text-green-700">
+            Alert {isEdit ? 'updated' : 'created'} successfully! Redirecting...
+          </p>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Basic Information */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Basic Information</h3>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+              <input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Message *</label>
+              <textarea
+                name="message"
+                value={formData.message}
+                onChange={handleChange}
+                rows={4}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Alert Type *</label>
+              <select
+                name="type"
+                value={formData.type}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                required
+              >
+                <option value="General">General</option>
+                <option value="Weather">Weather</option>
+                <option value="Security">Security</option>
+                <option value="Health">Health</option>
+                <option value="Transportation">Transportation</option>
+                <option value="Emergency">Emergency</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Status *</label>
+              <select
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                required
+              >
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+                <option value="Draft">Draft</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Severity *</label>
+              <select
+                name="severity"
+                value={formData.severity}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                required
+              >
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="critical">Critical</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Location & Timing */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Location & Timing</h3>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <input
+                  type="text"
+                  name="location"
+                  value={formData.location}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  placeholder="Enter location"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Affected Area</label>
+              <input
+                type="text"
+                name="affected_area"
+                value={formData.affected_area}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                placeholder="Enter affected area"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Start Date & Time</label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <input
+                  type="datetime-local"
+                  name="start_date"
+                  value={formData.start_date}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">End Date & Time</label>
+              <div className="relative">
+                <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <input
+                  type="datetime-local"
+                  name="end_date"
+                  value={formData.end_date}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Additional Information */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Additional Information</h3>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Instructions</label>
+            <textarea
+              name="instructions"
+              value={formData.instructions}
+              onChange={handleChange}
+              rows={3}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              placeholder="Provide instructions for the public"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Additional Information</label>
+            <textarea
+              name="additional_info"
+              value={formData.additional_info}
+              onChange={handleChange}
+              rows={3}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              placeholder="Any additional details"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Source</label>
+            <input
+              type="text"
+              name="source"
+              value={formData.source}
+              onChange={handleChange}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              placeholder="Source of this alert"
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3 pt-4 border-t">
+          <button
+            type="button"
+            onClick={() => navigate('/admin/alerts')}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={saving}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          >
+            {saving ? (
+              <Loader2 className="animate-spin h-4 w-4" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            {isEdit ? 'Update Alert' : 'Create Alert'}
+          </button>
+        </div>
+      </form>
+    </div>
   );
-};
+}
 
 export default AlertFormPage;

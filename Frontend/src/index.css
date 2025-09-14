@@ -55,3 +55,27 @@ main {
     margin-top: 0;
   }
 }
+
+
+@keyframes pulse-loading {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-pulse-loading {
+  animation: pulse-loading 1.5s infinite;
+}
+
+/* Add this to your global CSS file */
+body.user-logged-in main {
+  padding-top: 136px !important;
+}
+
+/* Or add this to your main layout component */
+.main-content {
+  padding-top: 136px;
+}

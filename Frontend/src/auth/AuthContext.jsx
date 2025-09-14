@@ -1,6 +1,7 @@
 // src/context/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const AuthContext = createContext();
 
@@ -11,6 +12,7 @@ axios.defaults.baseURL = "http://127.0.0.1:5000";
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   // API endpoints for checking roles
   const roleCheckEndpoints = [
@@ -22,14 +24,14 @@ export const AuthProvider = ({ children }) => {
   const getCookie = (name) => {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
+    if (parts.length === 2) return parts.pop().split(";").shift();
     return null;
   };
 
   // Set cookie
   const setCookie = (name, value, days = 7) => {
     const date = new Date();
-    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+    date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
     const expires = `expires=${date.toUTCString()}`;
     document.cookie = `${name}=${value}; ${expires}; path=/`;
   };
@@ -41,10 +43,11 @@ export const AuthProvider = ({ children }) => {
 
   // Clear all authentication cookies
   const clearAuthCookies = () => {
-    deleteCookie('session');
-    deleteCookie('admin_session');
-    deleteCookie('csrf_token');
-    deleteCookie('remember_token');
+    deleteCookie("session");
+    deleteCookie("admin_session");
+    deleteCookie("csrf_token");
+    deleteCookie("remember_token");
+    deleteCookie("user_role");
   };
 
   // Check which role the logged-in user has
@@ -53,23 +56,25 @@ export const AuthProvider = ({ children }) => {
       try {
         setLoading(true);
         let userFound = false;
-        
+
         for (const { role, url } of roleCheckEndpoints) {
           try {
             const res = await axios.get(url);
             if (res.data && res.data.user) {
               setUser({ ...res.data.user, role });
               userFound = true;
-              
+
               // Set role indicator cookie
-              setCookie('user_role', role, 1); // Expires in 1 day
+              setCookie("user_role", role, 1); // Expires in 1 day
               break; // Stop checking once a valid user is found
             }
           } catch (err) {
-            console.log(`No ${role} session:`, err.response?.status);
+            if (err.response?.status !== 401) {
+              console.error(`Error checking ${role} session:`, err);
+            }
           }
         }
-        
+
         if (!userFound) {
           // Clear any stale authentication data if no user found
           clearAuthCookies();
@@ -90,18 +95,18 @@ export const AuthProvider = ({ children }) => {
   // Login function
   const login = async ({ email, password, endpoint }) => {
     try {
-      const res = await axios.post(
-        `/api/${endpoint}/login`,
-        { email, password }
-      );
+      const res = await axios.post(`/api/${endpoint}/login`, {
+        email,
+        password,
+      });
 
       if (res.data && res.data.user) {
         const userData = { ...res.data.user, role: endpoint };
         setUser(userData);
-        
+
         // Set role indicator cookie
-        setCookie('user_role', endpoint, 1);
-        
+        setCookie("user_role", endpoint, 1);
+
         return { success: true, user: userData };
       }
 
@@ -109,30 +114,29 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       return {
         success: false,
-        error: err.response?.data?.error || "Login failed"
+        error: err.response?.data?.error || "Login failed",
       };
     }
   };
 
-  // Logout function - calls both logout endpoints to ensure all sessions are cleared
+  // Logout function
   const logout = async () => {
-    try {
-      // Try to logout from both endpoints to ensure all sessions are cleared
-      const logoutPromises = [
-        axios.post("/api/auth/logout").catch(err => console.log("Auth logout error:", err)),
-        axios.post("/api/admin/logout").catch(err => console.log("Admin logout error:", err))
-      ];
-      
-      await Promise.allSettled(logoutPromises);
-    } catch (err) {
+  try {
+    if (user?.role === "admin") {
+      await axios.post("/api/admin/logout");
+    } else if (user?.role === "citizen") {
+      await axios.post("/api/auth/logout");
+    }
+  } catch (err) {
+    if (err.response?.status !== 401) {
       console.error("Logout error:", err);
-    } finally {
-      // Always clear client-side data
-      clearAuthCookies();
-      setUser(null);
-      
-      // Force reload to ensure all state is cleared
-      window.location.reload();
+    }
+  } finally {
+    clearAuthCookies();
+    setUser(null);
+
+      // Redirect to login page (no reload)
+      navigate("/login");
     }
   };
 
@@ -147,18 +151,20 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      setUser, 
-      loading, 
-      login, 
-      logout,
-      hasRole,
-      isAuthenticated,
-      getCookie,
-      setCookie,
-      deleteCookie
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        setUser,
+        loading,
+        login,
+        logout,
+        hasRole,
+        isAuthenticated,
+        getCookie,
+        setCookie,
+        deleteCookie,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

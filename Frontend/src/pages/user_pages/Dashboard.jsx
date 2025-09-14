@@ -65,7 +65,7 @@ const Dashboard = () => {
       // 3. Fetch reports and alerts in parallel
       const [reportsResponse, alertsResponse] = await Promise.all([
         axios.get("http://127.0.0.1:5000/api/reports/", { withCredentials: true }),
-        axios.get("http://127.0.0.1:5000/api/alerts/", { withCredentials: true })
+        axios.get("http://127.0.0.1:5000/api/alerts/live", { withCredentials: true })
       ]);
 
       // Handle both array and object response formats
