@@ -53,6 +53,21 @@ const AdminReportDetails = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedData, setEditedData] = useState({});
 
+  // Garissa County areas and wards
+  const garissaAreas = [
+    "Garissa Town", "Dadaab", "Fafi", "Balambala", "Lagdera", "Ijara", "Hulugho", "Sankuri", "Bulas"
+  ];
+
+  const garissaWards = [
+    "Garissa Central", "Garissa North", "Garissa West", "Ijara", "Saka", "Shantaba", 
+    "Dagahaley", "Ifo", "Ifo II", "Liboi", 
+    "Bura", "Dekaharia", "Fafi", "Jarajila", "Nanighi",
+    "Balambala", "Danyere", "Jara Jara", "Saka", 
+    "Baramagu", "Labisagale", "Lagdera", "Sala", 
+    "Hulugho", "Ijara", "Kotile", "Masalani", "Sangailu",
+    "Bulas", "Modogashe", "Benane", "Alango", "Saretho"
+  ];
+
   // Fetch report
   useEffect(() => {
     const fetchReport = async () => {
@@ -245,25 +260,21 @@ const AdminReportDetails = () => {
               <Divider sx={{ mb: 2 }} />
 
               <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2">Location:</Typography>
-                  <Typography>{report.location}</Typography>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2">Area:</Typography>
+                  <Typography>{report.area || "Not specified"}</Typography>
                 </Grid>
-                {report.latitude && report.longitude && (
-                  <>
-                    <Grid item xs={12} sm={6}>
-                      <Typography variant="subtitle2">Latitude:</Typography>
-                      <Typography>{report.latitude}</Typography>
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <Typography variant="subtitle2">Longitude:</Typography>
-                      <Typography>{report.longitude}</Typography>
-                    </Grid>
-                  </>
-                )}
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2">Ward:</Typography>
+                  <Typography>{report.ward || "Not specified"}</Typography>
+                </Grid>
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2">Landmark:</Typography>
+                  <Typography>{report.landmark || "No landmark provided"}</Typography>
+                </Grid>
                 <Grid item xs={12}>
                   <Typography variant="subtitle2">Location Type:</Typography>
-                  <Typography>{report.location_type}</Typography>
+                  <Typography>{report.location_type || "N/A"}</Typography>
                 </Grid>
                 {report.location_details && (
                   <Grid item xs={12}>
@@ -393,14 +404,14 @@ const AdminReportDetails = () => {
                     <ListItem key={index}>
                       <ListItemAvatar>
                         <Avatar>
-                          {media.type.startsWith("image") && <ImageIcon />}
-                          {media.type.startsWith("video") && <Videocam />}
-                          {media.type.startsWith("audio") && <Mic />}
+                          {media.type?.startsWith("image") && <ImageIcon />}
+                          {media.type?.startsWith("video") && <Videocam />}
+                          {media.type?.startsWith("audio") && <Mic />}
                         </Avatar>
                       </ListItemAvatar>
                       <ListItemText
                         primary={media.name || `Attachment ${index + 1}`}
-                        secondary={media.type}
+                        secondary={media.type || "Unknown type"}
                       />
                     </ListItem>
                   ))}

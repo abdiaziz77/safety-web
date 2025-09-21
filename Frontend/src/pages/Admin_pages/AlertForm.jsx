@@ -94,7 +94,7 @@ function AlertFormPage() {
       
       setSuccess(true);
       setTimeout(() => {
-        navigate('/admin/alerts');
+        navigate('/admin/dashboard/alerts');
       }, 1500);
     } catch (err) {
       console.error('Error saving alert:', err);

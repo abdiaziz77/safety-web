@@ -29,7 +29,6 @@ import AdminAlertsList from "./pages/Admin_pages/AdminAlerts";
 import AdminUserManagement from "./pages/Admin_pages/UserManagement";
 import AdminAnalytics from "./pages/Admin_pages/Analytics";
 import AlertFormPage from "./pages/Admin_pages/AlertForm";
-import AdminChat from "./pages/Admin_pages/AdminChat";
 import AdminNotifications from "./pages/Admin_pages/AdminNotification";
 import AdminReportDetails from "./pages/Admin_pages/AdminReportsDetail";
 
@@ -50,13 +49,15 @@ import SafetyTips from "./pages/public_pages/SafetyTips";
 import EmergencyPage from "./pages/public_pages/Emergency";
 import CommunityPage from "./pages/public_pages/Comunity";
 import FaqPage from "./pages/public_pages/Faqs";
-import FeedbackPage from "./pages/public_pages/FeedBack";
+import FeedbackPage from "./pages/public_pages/Feedback";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import CalendarPage from "./pages/user_pages/Calender";
 import MessagePage from "./pages/user_pages/Message";
 import AdminMessages from "./pages/Admin_pages/AdminMessage";
 import SignupVerification from "./auth/SignupVerification";
 import Alerts from "./pages/public_pages/Alerts";
+import ReportAnalytics from "./pages/Admin_pages/ReportAnalytics";
+import AdminFeedbackManagement from "./pages/Admin_pages/AdminFeedback";
 
 
 
@@ -111,8 +112,9 @@ function App() {
   <Route path="/admin/dashboard" element={<AdminLayout />}>
     <Route index element={<AdminDashboard />} />
     <Route path="reports" element={<ReportList />} />
+     <Route path="report-analytics" element={<ReportAnalytics />} />
     <Route path="alerts" element={<AdminAlertsList />} />
-    <Route path="chats" element={<AdminChat />} />
+    <Route path="feedback-management" element={<AdminFeedbackManagement />} />
     <Route path="usermanagement" element={<AdminUserManagement />} />
     <Route path="analytics" element={<AdminAnalytics />} />
     <Route path="alertsform" element={<AlertFormPage />} />

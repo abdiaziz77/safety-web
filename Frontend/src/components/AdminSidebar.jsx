@@ -231,6 +231,21 @@ function AdminSidebar({ isCollapsed, setIsCollapsed }) {
                   User Management
                 </span>
               </NavLink>
+               <NavLink
+                to="/admin/dashboard/feedback-management"
+                className={getNavClass('/admin/dashboard/feedback-management')}
+                onClick={() => setIsMobileOpen(false)}
+              >
+                <Users className="h-5 w-5 min-w-[20px]" />
+                {!isCollapsed && (
+                  <span className="ml-3 truncate hidden md:inline">
+                    Feedback Management
+                  </span>
+                )}
+                <span className="ml-3 truncate md:hidden">
+                  Feedback Management
+                </span>
+              </NavLink>
 
               {/* Analytics */}
               <NavLink

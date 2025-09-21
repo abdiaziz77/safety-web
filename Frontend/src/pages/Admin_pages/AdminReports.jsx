@@ -215,9 +215,9 @@ const ReportsList = () => {
         elevation={0} 
         sx={{ 
           mb: 3, 
-          background: 'white',
-          color: 'black',
-          borderRadius: 2
+          background: 'transparent',
+          color: 'inherit',
+          boxShadow: 'none'
         }}
       >
         <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
@@ -235,7 +235,11 @@ const ReportsList = () => {
                 <IconButton 
                   onClick={fetchReports} 
                   size={isMobile ? "small" : "medium"}
-                  sx={{ color: 'white', backgroundColor: alpha('#fff', 0.1), '&:hover': { backgroundColor: alpha('#fff', 0.2) } }}
+                  sx={{ 
+                    color: 'primary.main', 
+                    backgroundColor: alpha(theme.palette.primary.main, 0.1), 
+                    '&:hover': { backgroundColor: alpha(theme.palette.primary.main, 0.2) } 
+                  }}
                 >
                   <Refresh />
                 </IconButton>
@@ -245,48 +249,8 @@ const ReportsList = () => {
         </CardContent>
       </Card>
 
-      {/* Stats Overview */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        {statusOptions.filter(s => s !== 'All').map(status => (
-          <Grid item xs={6} sm={4} md={2.4} key={status}>
-            <Card 
-              elevation={1} 
-              sx={{ 
-                textAlign: 'center', 
-                p: 2,
-                borderRadius: 2,
-                borderLeft: `4px solid ${statusColors[status]}`,
-                transition: 'transform 0.2s',
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: theme.shadows[4]
-                }
-              }}
-            >
-              <Box
-                sx={{
-                  display: 'inline-flex',
-                  borderRadius: '50%',
-                  p: 1,
-                  mb: 1,
-                  backgroundColor: alpha(statusColors[status], 0.1)
-                }}
-              >
-                <Report sx={{ color: statusColors[status] }} />
-              </Box>
-              <Typography variant="h5" fontWeight="bold">
-                {reports.filter(r => r.status === status).length}
-              </Typography>
-              <Typography variant="body2" color="textSecondary">
-                {status}
-              </Typography>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
-
       {/* Filters Section */}
-      <Card elevation={2} sx={{ mb: 3, borderRadius: 2 }}>
+      <Card elevation={1} sx={{ mb: 3, borderRadius: 2 }}>
         <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
           <Box display="flex" gap={2} flexWrap="wrap" flexDirection={{ xs: 'column', sm: 'row' }}>
             <TextField
@@ -430,7 +394,7 @@ const ReportsList = () => {
         </Box>
       ) : (
         // Desktop Table View
-        <Card elevation={2} sx={{ borderRadius: 2, overflow: 'hidden' }}>
+        <Card elevation={1} sx={{ borderRadius: 2, overflow: 'hidden' }}>
           <TableContainer>
             <Table>
               <TableHead>

@@ -32,8 +32,8 @@ function Navbar() {
   }, []);
 
   // Helper functions
-  const getNotificationPath = () => (user?.role === 'admin' ? '/admin/dashboard/notification' : '/dashboard/notification');
-  const getChatPath = () => (user?.role === 'admin' ? '/admin/dashboard/chats' : '/dashboard/chat');
+  const getNotificationPath = () => '/dashboard/notification';
+  const getChatPath = () => '/dashboard/chat';
 
   // Fetch counts and recent notifications
   useEffect(() => {
@@ -41,23 +41,16 @@ function Navbar() {
 
     const fetchCounts = async () => {
       try {
-        // Fetch notification count
+        // Fetch notification count (for all users, including admin)
         const notifResponse = await axios.get('/api/notifications/unread-count', { withCredentials: true });
         setNotificationCount(notifResponse.data.unread_count || 0);
-        
-        // Fetch unread messages count
-        const messagesEndpoint = user.role === 'admin' 
-          ? '/api/chat/admin/unread_counts' 
-          : '/api/chat/unread_count';
-        
-        const messagesResponse = await axios.get(messagesEndpoint, { withCredentials: true });
-        
-        if (user.role === 'admin') {
-          const unreadCounts = messagesResponse.data;
-          const totalUnread = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
-          setUnreadMessagesCount(totalUnread);
-        } else {
+
+        // Only fetch unread messages count for non-admin users
+        if (user.role !== 'admin') {
+          const messagesResponse = await axios.get('/api/chat/unread_count', { withCredentials: true });
           setUnreadMessagesCount(messagesResponse.data.total_unread_messages || 0);
+        } else {
+          setUnreadMessagesCount(0); // Admins don't see message count
         }
       } catch (error) {
         console.error('Error fetching counts:', error);
@@ -151,6 +144,15 @@ function Navbar() {
   // Helper function to render notification badge
   const renderNotificationBadge = (count) => {
     if (count > 0) {
+      // For admin, always show the count as a badge
+      if (user?.role === 'admin') {
+        return (
+          <span className="absolute -top-1 -right-1 text-xs rounded-full h-5 w-5 flex items-center justify-center bg-red-500 text-white">
+            {count > 99 ? '99+' : count}
+          </span>
+        );
+      }
+      // For others, show as usual
       return (
         <span className="absolute -top-1 -right-1 text-xs rounded-full h-5 w-5 flex items-center justify-center bg-red-500 text-white">
           {count > 99 ? '99+' : count}
@@ -162,7 +164,8 @@ function Navbar() {
 
   // Helper function to render message badge
   const renderMessageBadge = (count) => {
-    if (count > 0) {
+    // Only show for non-admin users
+    if (user?.role !== 'admin' && count > 0) {
       return (
         <span className="absolute -top-1 -right-1 text-xs rounded-full h-5 w-5 flex items-center justify-center bg-red-500 text-white">
           {count > 99 ? '99+' : count}
@@ -265,6 +268,14 @@ function Navbar() {
                   >
                     Emergency
                   </NavLink>
+                   <NavLink 
+                    to="/feedback" 
+                    className={({ isActive }) => 
+                      `font-semibold text-lg transition-colors ${isActive ? 'text-blue-700' : 'text-gray-900 hover:text-blue-700'}`
+                    }
+                  >
+                    Feedback
+                  </NavLink>
                 </div>
                 {/* Search Bar - Positioned between nav links and login */}
                 <div className="relative mx-4">
@@ -323,59 +334,64 @@ function Navbar() {
                 <>
                   {/* Notification & Chat Icons */}
                   <div className="flex items-center space-x-2">
-                    <button
-                      onClick={handleChatNavigation}
-                      className="p-2 rounded-full hover:bg-gray-100 relative transition-all group"
-                      aria-label="Messages"
-                    >
-                      <MessageSquare className="w-5 h-5 text-gray-600 group-hover:text-blue-600 transition-colors" />
-                      {renderMessageBadge(unreadMessagesCount)}
-                    </button>
-                    
-                    {/* Notification Dropdown */}
-                    <div className="relative">
+                    {/* Only show chat icon for non-admin users */}
+                    {user.role !== 'admin' && (
                       <button
-                        onClick={toggleNotificationDropdown}
-                        className="p-2 rounded-full hover:bg-gray-100 relative group"
-                        aria-label="Notifications"
+                        onClick={handleChatNavigation}
+                        className="p-2 rounded-full hover:bg-gray-100 relative transition-all group"
+                        aria-label="Messages"
                       >
-                        <Bell className="w-5 h-5 text-gray-600 group-hover:text-blue-600 transition-colors" />
-                        {renderNotificationBadge(notificationCount)}
+                        <MessageSquare className="w-5 h-5 text-gray-600 group-hover:text-blue-600 transition-colors" />
+                        {renderMessageBadge(unreadMessagesCount)}
                       </button>
+                    )}
 
-                      {isNotificationDropdownOpen && (
-                        <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg py-2 z-50 border border-gray-200">
-                          <div className="px-4 py-2 border-b border-gray-100 flex justify-between items-center">
-                            <h3 className="font-semibold text-gray-800">Notifications</h3>
-                            <button 
-                              onClick={handleNotificationNavigation}
-                              className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
-                            >
-                              View All
-                            </button>
-                          </div>
-                          <div className="max-h-96 overflow-y-auto">
-                            {recentNotifications.length > 0 ? (
-                              recentNotifications.map(notification => (
-                                <div key={notification.id} className="px-4 py-3 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors cursor-pointer">
-                                  <div className="flex justify-between">
-                                    <p className="text-sm font-medium text-gray-800">{notification.title}</p>
-                                    <span className="text-xs text-gray-500">
-                                      {new Date(notification.created_at).toLocaleTimeString()}
-                                    </span>
+                    {/* Notification Dropdown - Only show for non-admin users */}
+                    {user.role !== 'admin' && (
+                      <div className="relative">
+                        <button
+                          onClick={toggleNotificationDropdown}
+                          className="p-2 rounded-full hover:bg-gray-100 relative group"
+                          aria-label="Notifications"
+                        >
+                          <Bell className="w-5 h-5 text-gray-600 group-hover:text-blue-600 transition-colors" />
+                          {renderNotificationBadge(notificationCount)}
+                        </button>
+
+                        {isNotificationDropdownOpen && (
+                          <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg py-2 z-50 border border-gray-200">
+                            <div className="px-4 py-2 border-b border-gray-100 flex justify-between items-center">
+                              <h3 className="font-semibold text-gray-800">Notifications</h3>
+                              <button 
+                                onClick={handleNotificationNavigation}
+                                className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                              >
+                                View All
+                              </button>
+                            </div>
+                            <div className="max-h-96 overflow-y-auto">
+                              {recentNotifications.length > 0 ? (
+                                recentNotifications.map(notification => (
+                                  <div key={notification.id} className="px-4 py-3 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors cursor-pointer">
+                                    <div className="flex justify-between">
+                                      <p className="text-sm font-medium text-gray-800">{notification.title}</p>
+                                      <span className="text-xs text-gray-500">
+                                        {new Date(notification.created_at).toLocaleTimeString()}
+                                      </span>
+                                    </div>
+                                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">{notification.message}</p>
                                   </div>
-                                  <p className="text-sm text-gray-600 mt-1 line-clamp-2">{notification.message}</p>
+                                ))
+                              ) : (
+                                <div className="px-4 py-6 text-center text-gray-500">
+                                  No notifications
                                 </div>
-                              ))
-                            ) : (
-                              <div className="px-4 py-6 text-center text-gray-500">
-                                No notifications
-                              </div>
-                            )}
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Blue Logout Button (replaces user dropdown) */}
@@ -479,6 +495,16 @@ function Navbar() {
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Emergency
+                </NavLink>
+
+                 <NavLink
+                  to="/feedback"
+                  className={({ isActive }) =>
+                    `block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-all ${isActive ? 'bg-blue-50 text-blue-600' : ''}`
+                  }
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Feedback
                 </NavLink>
                 <div className="border-t border-gray-200 pt-4 mt-2">
                   <Link

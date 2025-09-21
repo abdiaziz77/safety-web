@@ -29,7 +29,8 @@ import {
   LinearProgress,
   useMediaQuery,
   useTheme,
-  MobileStepper
+  MobileStepper,
+  Autocomplete
 } from "@mui/material";
 import { DatePicker, TimePicker } from "@mui/x-date-pickers";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -42,7 +43,8 @@ import {
   Mic,
   AttachFile,
   KeyboardArrowLeft,
-  KeyboardArrowRight
+  KeyboardArrowRight,
+  LocationOn
 } from "@mui/icons-material";
 
 const Reports = () => {
@@ -67,8 +69,9 @@ const Reports = () => {
     
     // Location Details
     location: "",
-    latitude: "",
-    longitude: "",
+    area: "",
+    ward: "",
+    landmark: "",
     location_type: "public",
     location_details: "",
     
@@ -77,7 +80,7 @@ const Reports = () => {
     full_name: "",
     email: "",
     phone: "",
-    address: "",
+    personal_address: "",
     
     // Incident Details
     witnesses: false,
@@ -93,7 +96,6 @@ const Reports = () => {
     tags: [],
     custom_fields: {},
   });
-
 
   const reportTypes = [
     "Crime",
@@ -114,7 +116,8 @@ const Reports = () => {
     "Fraud",
     "Cyber Crime",
     "Harassment",
-    "Hate Crime"
+    "Hate Crime",
+    "Others"
   ];
 
   const accidentSubcategories = [
@@ -122,6 +125,33 @@ const Reports = () => {
     "Workplace Accident",
     "Slip and Fall",
     "Other Accident"
+  ];
+
+  // Garissa County areas and wards
+  const garissaAreas = [
+    "Garissa Town", "Dadaab", "Fafi", "Balambala", "Lagdera", "Ijara", "Hulugho", "Sankuri"
+  ];
+
+  const garissaWards = [
+    // Garissa Town Wards
+    "Garissa Central", "Garissa North", "Garissa West", "Ijara", "Saka", "Shantaba", 
+    
+    // Dadaab Wards
+    "Dagahaley", "Ifo", "Ifo II", "Liboi", 
+    
+    // Fafi Wards
+    "Bura", "Dekaharia", "Fafi", "Jarajila", "Nanighi",
+    
+    // Balambala Wards
+    "Balambala", "Danyere", "Jara Jara", "Saka", 
+    
+    // Lagdera Wards
+    "Baramagu", "Labisagale", "Lagdera", "Sala", 
+    
+    // Ijara Wards
+    "Hulugho", "Ijara", "Kotile", "Masalani", "Sangailu"
+    
+    
   ];
 
   const steps = [
@@ -172,10 +202,11 @@ const Reports = () => {
     });
     
     try {
-      const response = await axios.post("http://127.0.0.1:5000/api/upload-media", formData, {
+      const response = await axios.post("http://127.0.0.1:5000/api/reports/upload-media", formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         },
+        withCredentials: true,
         onUploadProgress: (progressEvent) => {
           const percentCompleted = Math.round(
             (progressEvent.loaded * 100) / progressEvent.total
@@ -237,8 +268,6 @@ const Reports = () => {
         withCredentials: true
       });
       
-     
-
       // Upload media files first
       const mediaUrls = await uploadMedia();
       
@@ -264,15 +293,16 @@ const Reports = () => {
         time: new Date(),
         urgency: "medium",
         location: "",
-        latitude: "",
-        longitude: "",
+        area: "",
+        ward: "",
+        landmark: "",
         location_type: "public",
         location_details: "",
         anonymous: false,
         full_name: "",
         email: "",
         phone: "",
-        address: "",
+        personal_address: "",
         witnesses: false,
         witness_details: "",
         evidence_available: false,
@@ -298,7 +328,6 @@ const Reports = () => {
     }
   };
 
-  
   const getStepContent = (step) => {
     switch (step) {
       case 0:
@@ -469,30 +498,55 @@ const Reports = () => {
       case 2:
         return (
           <div className="space-y-4">
+            <FormControl fullWidth>
+              <InputLabel>Area in Garissa County</InputLabel>
+              <Select
+                name="area"
+                value={formData.area}
+                onChange={handleChange}
+                required
+              >
+                <MenuItem value=""><em>Select an area</em></MenuItem>
+                {garissaAreas.map(area => (
+                  <MenuItem key={area} value={area}>{area}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl fullWidth>
+              <InputLabel>Ward</InputLabel>
+              <Select
+                name="ward"
+                value={formData.ward}
+                onChange={handleChange}
+                required
+              >
+                <MenuItem value=""><em>Select a ward</em></MenuItem>
+                {garissaWards.map(ward => (
+                  <MenuItem key={ward} value={ward}>{ward}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
             <TextField
               fullWidth
-              label="Location"
-              name="location"
-              value={formData.location}
+              label="Nearest Landmark"
+              name="landmark"
+              value={formData.landmark}
               onChange={handleChange}
-              required
+              helperText="e.g., near Garissa Primary School, next to main market, etc."
             />
 
-            <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>
-              <TextField
-                label="Latitude"
-                name="latitude"
-                value={formData.latitude}
-                onChange={handleChange}
-              />
-
-              <TextField
-                label="Longitude"
-                name="longitude"
-                value={formData.longitude}
-                onChange={handleChange}
-              />
-            </div>
+            <TextField
+              fullWidth
+              label="Specific Location Details"
+              name="location_details"
+              value={formData.location_details}
+              onChange={handleChange}
+              multiline
+              rows={2}
+              helperText="Provide any additional details about the location"
+            />
 
             <FormControl fullWidth>
               <InputLabel>Location Type</InputLabel>
@@ -508,16 +562,6 @@ const Reports = () => {
                 <MenuItem value="online">Online/Virtual</MenuItem>
               </Select>
             </FormControl>
-
-            <TextField
-              fullWidth
-              label="Location Details"
-              name="location_details"
-              value={formData.location_details}
-              onChange={handleChange}
-              multiline
-              rows={2}
-            />
           </div>
         );
       case 3:
@@ -564,9 +608,9 @@ const Reports = () => {
 
                 <TextField
                   fullWidth
-                  label="Address"
-                  name="address"
-                  value={formData.address}
+                  label="Your Address"
+                  name="personal_address"
+                  value={formData.personal_address}
                   onChange={handleChange}
                   multiline
                   rows={2}
@@ -766,17 +810,17 @@ const Reports = () => {
                 <Typography variant="h6" gutterBottom>Location Details</Typography>
                 <Divider sx={{ mb: 2 }} />
                 <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2">Area:</Typography>
+                    <Typography>{formData.area}</Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2">Ward:</Typography>
+                    <Typography>{formData.ward}</Typography>
+                  </Grid>
                   <Grid item xs={12}>
-                    <Typography variant="subtitle2">Location:</Typography>
-                    <Typography>{formData.location}</Typography>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="subtitle2">Latitude:</Typography>
-                    <Typography>{formData.latitude || 'Not provided'}</Typography>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="subtitle2">Longitude:</Typography>
-                    <Typography>{formData.longitude || 'Not provided'}</Typography>
+                    <Typography variant="subtitle2">Landmark:</Typography>
+                    <Typography>{formData.landmark || 'Not provided'}</Typography>
                   </Grid>
                   <Grid item xs={12}>
                     <Typography variant="subtitle2">Location Type:</Typography>
@@ -812,7 +856,7 @@ const Reports = () => {
                     </Grid>
                     <Grid item xs={12} sm={6}>
                       <Typography variant="subtitle2">Address:</Typography>
-                      <Typography>{formData.address || 'Not provided'}</Typography>
+                      <Typography>{formData.personal_address || 'Not provided'}</Typography>
                     </Grid>
                   </Grid>
                 )}
@@ -863,7 +907,7 @@ const Reports = () => {
 
   return (
     <div className="min-h-screen bg-blue-100 pt-2 pb-4 md:pt-4 md:pb-8">
-  <div className="max-w-4xl mx-auto bg-white shadow-xl rounded-xl p-4 md:p-6 mt-2 mb-4 md:mt-4 md:mb-6">
+      <div className="max-w-4xl mx-auto bg-white shadow-xl rounded-xl p-4 md:p-6 mt-2 mb-4 md:mt-4 md:mb-6">
         <Typography variant={isMobile ? "h5" : "h4"} gutterBottom sx={{ fontWeight: 'bold', mb: 4, textAlign: isMobile ? 'center' : 'left' }}>
           Incident Report Submission
         </Typography>

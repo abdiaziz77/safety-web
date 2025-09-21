@@ -30,7 +30,13 @@ import {
   Avatar,
   IconButton,
   useMediaQuery,
-  useTheme
+  useTheme,
+  Collapse,
+  TextField,
+  Select,
+  MenuItem,
+  InputLabel,
+  FormControl
 } from "@mui/material";
 import {
   CheckCircle,
@@ -43,7 +49,14 @@ import {
   Videocam,
   Mic,
   LocationOn,
-  Person
+  Person,
+  Note,
+  AdminPanelSettings,
+  ExpandMore,
+  ExpandLess,
+  Edit,
+  Save,
+  Cancel
 } from "@mui/icons-material";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -54,9 +67,40 @@ const MyReportsPage = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
+  const [expandedNotes, setExpandedNotes] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedData, setEditedData] = useState({});
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
+  // Garissa County areas and wards
+  const garissaAreas = [
+    "Garissa Town", "Dadaab", "Fafi", "Balambala", "Lagdera", "Ijara", "Hulugho", "Sankuri", "Bulas"
+  ];
+
+  const garissaWards = [
+    // Garissa Town Wards
+    "Garissa Central", "Garissa North", "Garissa West", "Ijara", "Saka", "Shantaba", 
+    
+    // Dadaab Wards
+    "Dagahaley", "Ifo", "Ifo II", "Liboi", 
+    
+    // Fafi Wards
+    "Bura", "Dekaharia", "Fafi", "Jarajila", "Nanighi",
+    
+    // Balambala Wards
+    "Balambala", "Danyere", "Jara Jara", "Saka", 
+    
+    // Lagdera Wards
+    "Baramagu", "Labisagale", "Lagdera", "Sala", 
+    
+    // Ijara Wards
+    "Hulugho", "Ijara", "Kotile", "Masalani", "Sangailu",
+    
+    // Bulas and surrounding areas
+    "Bulas", "Modogashe", "Benane", "Alango", "Saretho"
+  ];
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -80,7 +124,7 @@ const MyReportsPage = () => {
         // Store user information
         setUserInfo(authCheck.data.user);
 
-        // ✅ Fetch reports
+        // ✅ Fetch reports - Updated endpoint
         const response = await axios.get(
           "http://127.0.0.1:5000/api/reports/",
           {
@@ -88,8 +132,14 @@ const MyReportsPage = () => {
           }
         );
 
-        // Depending on backend structure, adapt this
-        setReports(response.data.reports || response.data || []);
+        // Handle different response structures
+        if (response.data.reports) {
+          setReports(response.data.reports);
+        } else if (Array.isArray(response.data)) {
+          setReports(response.data);
+        } else {
+          setReports([]);
+        }
       } catch (error) {
         console.error("Error:", error);
 
@@ -122,10 +172,26 @@ const MyReportsPage = () => {
     }
   };
 
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case "resolved":
+        return "success.main";
+      case "pending":
+        return "warning.main";
+      case "in progress":
+        return "info.main";
+      case "rejected":
+        return "error.main";
+      default:
+        return "text.primary";
+    }
+  };
+
   const handleViewDetails = async (report) => {
     // If we already have detailed information, show it immediately
-    if (report.description && report.location) {
+    if (report.description && report.area && report.admin_notes !== undefined) {
       setSelectedReport(report);
+      setEditedData(report);
       setDialogOpen(true);
       return;
     }
@@ -138,12 +204,16 @@ const MyReportsPage = () => {
         { withCredentials: true }
       );
       
-      setSelectedReport(response.data.report || response.data);
+      // Handle different response structures
+      const reportData = response.data.report || response.data;
+      setSelectedReport(reportData);
+      setEditedData(reportData);
       setDialogOpen(true);
     } catch (error) {
       console.error("Error fetching report details:", error);
       // If fetch fails, show the basic info we already have
       setSelectedReport(report);
+      setEditedData(report);
       setDialogOpen(true);
     } finally {
       setDetailsLoading(false);
@@ -153,6 +223,80 @@ const MyReportsPage = () => {
   const handleCloseDialog = () => {
     setDialogOpen(false);
     setSelectedReport(null);
+    setIsEditing(false);
+    setExpandedNotes(true);
+  };
+
+  const toggleNotesExpansion = () => {
+    setExpandedNotes(!expandedNotes);
+  };
+
+  const handleEditToggle = () => {
+    if (isEditing) {
+      // If canceling edit, reset to original data
+      setEditedData(selectedReport);
+    }
+    setIsEditing(!isEditing);
+  };
+
+  const handleSave = async () => {
+    try {
+      const response = await axios.put(
+        `http://127.0.0.1:5000/api/reports/${selectedReport.id}`,
+        {
+          title: editedData.title,
+          description: editedData.description,
+          report_type: editedData.report_type,
+          urgency: editedData.urgency,
+          date: editedData.date,
+          area: editedData.area,
+          ward: editedData.ward,
+          landmark: editedData.landmark,
+          location_type: editedData.location_type,
+          location_details: editedData.location_details,
+          // Include other fields that might be needed
+          witnesses: editedData.witnesses,
+          witness_details: editedData.witness_details,
+          evidence_available: editedData.evidence_available,
+          evidence_details: editedData.evidence_details,
+          police_involved: editedData.police_involved,
+          police_details: editedData.police_details,
+          category: editedData.category,
+          subcategory: editedData.subcategory,
+          tags: editedData.tags,
+          custom_fields: editedData.custom_fields
+        },
+        { withCredentials: true }
+      );
+
+      // Handle different response structures
+      const updatedReport = response.data.report || response.data;
+      
+      setSelectedReport(updatedReport);
+      setEditedData(updatedReport);
+      
+      // Update the reports list
+      setReports(reports.map(report => 
+        report.id === selectedReport.id ? updatedReport : report
+      ));
+      
+      toast.success("Report updated successfully");
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Error updating report:", error);
+      if (error.response?.data?.error) {
+        toast.error(`Failed to update report: ${error.response.data.error}`);
+      } else {
+        toast.error("Failed to update report");
+      }
+    }
+  };
+
+  const handleInputChange = (field, value) => {
+    setEditedData({
+      ...editedData,
+      [field]: value
+    });
   };
 
   const getUserDisplayName = (reportAuthor) => {
@@ -186,9 +330,37 @@ const MyReportsPage = () => {
             <Typography variant="h6" component="span">
               Report Details
             </Typography>
-            <IconButton onClick={onClose} size="small">
-              <Close />
-            </IconButton>
+            <Box>
+              {!isEditing ? (
+                <Button
+                  startIcon={<Edit />}
+                  onClick={handleEditToggle}
+                  sx={{ mr: 1 }}
+                >
+                  Edit
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    startIcon={<Save />}
+                    onClick={handleSave}
+                    sx={{ mr: 1 }}
+                    variant="contained"
+                  >
+                    Save
+                  </Button>
+                  <Button
+                    startIcon={<Cancel />}
+                    onClick={handleEditToggle}
+                  >
+                    Cancel
+                  </Button>
+                </>
+              )}
+              <IconButton onClick={onClose} size="small">
+                <Close />
+              </IconButton>
+            </Box>
           </Box>
         </DialogTitle>
         
@@ -199,6 +371,82 @@ const MyReportsPage = () => {
             </Box>
           ) : (
             <Grid container spacing={2}>
+              {/* Status - At the top for visibility */}
+              <Grid item xs={12}>
+                <Card 
+                  variant="outlined" 
+                  sx={{ 
+                    mb: 2, 
+                    borderLeft: `4px solid`,
+                    borderLeftColor: getStatusColor(report.status),
+                    backgroundColor: 'background.paper'
+                  }}
+                >
+                  <CardContent>
+                    <Box display="flex" alignItems="center" gap={1} mb={1}>
+                      {getStatusIcon(report.status)}
+                      <Typography variant="subtitle2" fontWeight="bold">
+                        STATUS:
+                      </Typography>
+                    </Box>
+                    <Typography 
+                      variant="h6" 
+                      fontWeight="bold"
+                      color={getStatusColor(report.status)}
+                    >
+                      {report.status || "Unknown"}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* Admin Notes - Expandable Section */}
+              {report.admin_notes && (
+                <Grid item xs={12}>
+                  <Card variant="outlined" sx={{ mb: 2 }}>
+                    <CardContent sx={{ p: '16px !important', pb: expandedNotes ? '16px' : '8px !important' }}>
+                      <Box 
+                        display="flex" 
+                        justifyContent="space-between" 
+                        alignItems="center"
+                        sx={{ cursor: 'pointer' }}
+                        onClick={toggleNotesExpansion}
+                      >
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <AdminPanelSettings color="primary" />
+                          <Typography variant="h6" color="primary">
+                            Admin Notes
+                          </Typography>
+                        </Box>
+                        <IconButton size="small">
+                          {expandedNotes ? <ExpandLess /> : <ExpandMore />}
+                        </IconButton>
+                      </Box>
+                      
+                      <Collapse in={expandedNotes} timeout="auto" unmountOnExit>
+                        <Divider sx={{ my: 2 }} />
+                        <Card 
+                          variant="outlined" 
+                          sx={{ 
+                            p: 2, 
+                            backgroundColor: 'grey.50',
+                            borderColor: 'primary.light'
+                          }}
+                        >
+                          <Typography 
+                            variant="body1" 
+                            sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}
+                            fontWeight="medium"
+                          >
+                            {report.admin_notes}
+                          </Typography>
+                        </Card>
+                      </Collapse>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              )}
+
               <Grid item xs={12} md={8}>
                 {/* Basic Information */}
                 <Card variant="outlined" sx={{ mb: 2 }}>
@@ -210,42 +458,104 @@ const MyReportsPage = () => {
 
                     <Grid container spacing={2}>
                       <Grid item xs={12} sm={6}>
-                        <Typography variant="subtitle2">Report Type:</Typography>
-                        <Typography>{report.report_type || "N/A"}</Typography>
+                        <Typography variant="subtitle2" fontWeight="medium">Report Type:</Typography>
+                        {isEditing ? (
+                          <FormControl fullWidth size="small">
+                            <Select
+                              value={editedData.report_type || ""}
+                              onChange={(e) => handleInputChange('report_type', e.target.value)}
+                            >
+                              <MenuItem value="Crime">Crime</MenuItem>
+                              <MenuItem value="Accident">Accident</MenuItem>
+                              <MenuItem value="Public Safety">Public Safety</MenuItem>
+                              <MenuItem value="Environmental">Environmental</MenuItem>
+                              <MenuItem value="Infrastructure">Infrastructure</MenuItem>
+                              <MenuItem value="Animal Related">Animal Related</MenuItem>
+                              <MenuItem value="Noise Complaint">Noise Complaint</MenuItem>
+                              <MenuItem value="Other">Other</MenuItem>
+                            </Select>
+                          </FormControl>
+                        ) : (
+                          <Typography>{report.report_type || "N/A"}</Typography>
+                        )}
                       </Grid>
                       <Grid item xs={12} sm={6}>
-                        <Typography variant="subtitle2">Title:</Typography>
-                        <Typography>{report.title || "N/A"}</Typography>
+                        <Typography variant="subtitle2" fontWeight="medium">Title:</Typography>
+                        {isEditing ? (
+                          <TextField
+                            fullWidth
+                            size="small"
+                            value={editedData.title || ""}
+                            onChange={(e) => handleInputChange('title', e.target.value)}
+                          />
+                        ) : (
+                          <Typography>{report.title || "N/A"}</Typography>
+                        )}
                       </Grid>
                       <Grid item xs={12}>
-                        <Typography variant="subtitle2">Description:</Typography>
-                        <Typography>{report.description || "No description provided"}</Typography>
+                        <Typography variant="subtitle2" fontWeight="medium">Description:</Typography>
+                        {isEditing ? (
+                          <TextField
+                            fullWidth
+                            multiline
+                            rows={3}
+                            value={editedData.description || ""}
+                            onChange={(e) => handleInputChange('description', e.target.value)}
+                          />
+                        ) : (
+                          <Typography>{report.description || "No description provided"}</Typography>
+                        )}
                       </Grid>
                       <Grid item xs={12} sm={6}>
-                        <Typography variant="subtitle2">Date:</Typography>
-                        <Typography>
-                          {report.date ? new Date(report.date).toLocaleDateString() : "N/A"}
-                        </Typography>
+                        <Typography variant="subtitle2" fontWeight="medium">Date:</Typography>
+                        {isEditing ? (
+                          <TextField
+                            fullWidth
+                            type="date"
+                            size="small"
+                            value={editedData.date ? new Date(editedData.date).toISOString().split('T')[0] : ""}
+                            onChange={(e) => handleInputChange('date', e.target.value)}
+                            InputLabelProps={{ shrink: true }}
+                          />
+                        ) : (
+                          <Typography>
+                            {report.date ? new Date(report.date).toLocaleDateString() : "N/A"}
+                          </Typography>
+                        )}
                       </Grid>
                       <Grid item xs={12} sm={6}>
-                        <Typography variant="subtitle2">Urgency:</Typography>
-                        <Chip
-                          label={report.urgency || "N/A"}
-                          color={
-                            report.urgency === "high" || report.urgency === "critical"
-                              ? "error"
-                              : report.urgency === "medium"
-                              ? "warning"
-                              : "default"
-                          }
-                          size="small"
-                        />
+                        <Typography variant="subtitle2" fontWeight="medium">Urgency:</Typography>
+                        {isEditing ? (
+                          <FormControl fullWidth size="small">
+                            <Select
+                              value={editedData.urgency || ""}
+                              onChange={(e) => handleInputChange('urgency', e.target.value)}
+                            >
+                              <MenuItem value="low">Low</MenuItem>
+                              <MenuItem value="medium">Medium</MenuItem>
+                              <MenuItem value="high">High</MenuItem>
+                              <MenuItem value="critical">Critical</MenuItem>
+                            </Select>
+                          </FormControl>
+                        ) : (
+                          <Chip
+                            label={report.urgency || "N/A"}
+                            color={
+                              report.urgency === "high" || report.urgency === "critical"
+                                ? "error"
+                                : report.urgency === "medium"
+                                ? "warning"
+                                : "default"
+                            }
+                            size="small"
+                          />
+                        )}
                       </Grid>
                       {/* User Information */}
                       <Grid item xs={12}>
                         <Box display="flex" alignItems="center" gap={1} mb={1}>
                           <Person color="primary" fontSize="small" />
-                          <Typography variant="subtitle2">Submitted by:</Typography>
+                          <Typography variant="subtitle2" fontWeight="medium">Submitted by:</Typography>
                         </Box>
                         <Typography>
                           {getUserDisplayName(report.author)}
@@ -265,108 +575,235 @@ const MyReportsPage = () => {
                     <Divider sx={{ mb: 2 }} />
 
                     <Grid container spacing={2}>
-                      <Grid item xs={12}>
+                      <Grid item xs={12} sm={6}>
                         <Box display="flex" alignItems="center" gap={1}>
                           <LocationOn color="primary" fontSize="small" />
-                          <Typography variant="subtitle2">Location:</Typography>
+                          <Typography variant="subtitle2" fontWeight="medium">Area:</Typography>
                         </Box>
-                        <Typography>{report.location || "Location not specified"}</Typography>
+                        {isEditing ? (
+                          <FormControl fullWidth size="small">
+                            <Select
+                              value={editedData.area || ""}
+                              onChange={(e) => handleInputChange('area', e.target.value)}
+                            >
+                              {garissaAreas.map((area) => (
+                                <MenuItem key={area} value={area}>
+                                  {area}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        ) : (
+                          <Typography>{report.area || "N/A"}</Typography>
+                        )}
                       </Grid>
-                      {report.latitude && report.longitude && (
-                        <>
-                          <Grid item xs={12} sm={6}>
-                            <Typography variant="subtitle2">Latitude:</Typography>
-                            <Typography>{report.latitude}</Typography>
-                          </Grid>
-                          <Grid item xs={12} sm={6}>
-                            <Typography variant="subtitle2">Longitude:</Typography>
-                            <Typography>{report.longitude}</Typography>
-                          </Grid>
-                        </>
-                      )}
+                      <Grid item xs={12} sm={6}>
+                        <Typography variant="subtitle2" fontWeight="medium">Ward:</Typography>
+                        {isEditing ? (
+                          <FormControl fullWidth size="small">
+                            <Select
+                              value={editedData.ward || ""}
+                              onChange={(e) => handleInputChange('ward', e.target.value)}
+                            >
+                              {garissaWards.map((ward) => (
+                                <MenuItem key={ward} value={ward}>
+                                  {ward}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        ) : (
+                          <Typography>{report.ward || "N/A"}</Typography>
+                        )}
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <Typography variant="subtitle2" fontWeight="medium">Landmark:</Typography>
+                        {isEditing ? (
+                          <TextField
+                            fullWidth
+                            size="small"
+                            value={editedData.landmark || ""}
+                            onChange={(e) => handleInputChange('landmark', e.target.value)}
+                          />
+                        ) : (
+                          <Typography>{report.landmark || "N/A"}</Typography>
+                        )}
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <Typography variant="subtitle2" fontWeight="medium">Location Type:</Typography>
+                        {isEditing ? (
+                          <FormControl fullWidth size="small">
+                            <Select
+                              value={editedData.location_type || ""}
+                              onChange={(e) => handleInputChange('location_type', e.target.value)}
+                            >
+                              <MenuItem value="Residential">Residential</MenuItem>
+                              <MenuItem value="Commercial">Commercial</MenuItem>
+                              <MenuItem value="Public Space">Public Space</MenuItem>
+                              <MenuItem value="Road/Street">Road/Street</MenuItem>
+                              <MenuItem value="Rural Area">Rural Area</MenuItem>
+                              <MenuItem value="Other">Other</MenuItem>
+                            </Select>
+                          </FormControl>
+                        ) : (
+                          <Typography>{report.location_type || "N/A"}</Typography>
+                        )}
+                      </Grid>
                       <Grid item xs={12}>
-                        <Typography variant="subtitle2">Location Type:</Typography>
-                        <Typography>{report.location_type || "N/A"}</Typography>
+                        <Typography variant="subtitle2" fontWeight="medium">Location Details:</Typography>
+                        {isEditing ? (
+                          <TextField
+                            fullWidth
+                            multiline
+                            rows={2}
+                            value={editedData.location_details || ""}
+                            onChange={(e) => handleInputChange('location_details', e.target.value)}
+                          />
+                        ) : (
+                          <Typography>{report.location_details || "N/A"}</Typography>
+                        )}
                       </Grid>
-                      {report.location_details && (
-                        <Grid item xs={12}>
-                          <Typography variant="subtitle2">Location Details:</Typography>
-                          <Typography>{report.location_details}</Typography>
-                        </Grid>
-                      )}
                     </Grid>
                   </CardContent>
                 </Card>
               </Grid>
 
-              {/* Metadata & Media */}
               <Grid item xs={12} md={4}>
+                {/* Additional Information */}
                 <Card variant="outlined" sx={{ mb: 2 }}>
                   <CardContent>
                     <Typography variant="h6" gutterBottom>
-                      Report Metadata
+                      Additional Information
                     </Typography>
                     <Divider sx={{ mb: 2 }} />
 
-                    <Box display="flex" alignItems="center" gap={1} mb={2}>
-                      {getStatusIcon(report.status)}
-                      <Typography variant="subtitle1">
-                        {report.status || "Unknown"}
-                      </Typography>
-                    </Box>
-
-                    <List dense>
-                      <ListItem>
-                        <ListItemText
-                          primary="Report ID"
-                          secondary={report.id ? `#${report.id.slice(0, 8)}` : "N/A"}
-                        />
-                      </ListItem>
-                      <ListItem>
-                        <ListItemText
-                          primary="Date Submitted"
-                          secondary={
-                            report.created_at
-                              ? new Date(report.created_at).toLocaleString()
-                              : "N/A"
-                          }
-                        />
-                      </ListItem>
-                      <ListItem>
-                        <ListItemText
-                          primary="Last Updated"
-                          secondary={
-                            report.updated_at
-                              ? new Date(report.updated_at).toLocaleString()
-                              : "N/A"
-                          }
-                        />
-                      </ListItem>
-                    </List>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12}>
+                        <Typography variant="subtitle2" fontWeight="medium">Witnesses:</Typography>
+                        {isEditing ? (
+                          <FormControl fullWidth size="small">
+                            <Select
+                              value={editedData.witnesses || ""}
+                              onChange={(e) => handleInputChange('witnesses', e.target.value)}
+                            >
+                              <MenuItem value="yes">Yes</MenuItem>
+                              <MenuItem value="no">No</MenuItem>
+                              <MenuItem value="unknown">Unknown</MenuItem>
+                            </Select>
+                          </FormControl>
+                        ) : (
+                          <Typography>{report.witnesses || "N/A"}</Typography>
+                        )}
+                      </Grid>
+                      {report.witnesses === "yes" && (
+                        <Grid item xs={12}>
+                          <Typography variant="subtitle2" fontWeight="medium">Witness Details:</Typography>
+                          {isEditing ? (
+                            <TextField
+                              fullWidth
+                              multiline
+                              rows={2}
+                              value={editedData.witness_details || ""}
+                              onChange={(e) => handleInputChange('witness_details', e.target.value)}
+                            />
+                          ) : (
+                            <Typography>{report.witness_details || "N/A"}</Typography>
+                          )}
+                        </Grid>
+                      )}
+                      <Grid item xs={12}>
+                        <Typography variant="subtitle2" fontWeight="medium">Evidence Available:</Typography>
+                        {isEditing ? (
+                          <FormControl fullWidth size="small">
+                            <Select
+                              value={editedData.evidence_available || ""}
+                              onChange={(e) => handleInputChange('evidence_available', e.target.value)}
+                            >
+                              <MenuItem value="yes">Yes</MenuItem>
+                              <MenuItem value="no">No</MenuItem>
+                              <MenuItem value="unknown">Unknown</MenuItem>
+                            </Select>
+                          </FormControl>
+                        ) : (
+                          <Typography>{report.evidence_available || "N/A"}</Typography>
+                        )}
+                      </Grid>
+                      {report.evidence_available === "yes" && (
+                        <Grid item xs={12}>
+                          <Typography variant="subtitle2" fontWeight="medium">Evidence Details:</Typography>
+                          {isEditing ? (
+                            <TextField
+                              fullWidth
+                              multiline
+                              rows={2}
+                              value={editedData.evidence_details || ""}
+                              onChange={(e) => handleInputChange('evidence_details', e.target.value)}
+                            />
+                          ) : (
+                            <Typography>{report.evidence_details || "N/A"}</Typography>
+                          )}
+                        </Grid>
+                      )}
+                      <Grid item xs={12}>
+                        <Typography variant="subtitle2" fontWeight="medium">Police Involved:</Typography>
+                        {isEditing ? (
+                          <FormControl fullWidth size="small">
+                            <Select
+                              value={editedData.police_involved || ""}
+                              onChange={(e) => handleInputChange('police_involved', e.target.value)}
+                            >
+                              <MenuItem value="yes">Yes</MenuItem>
+                              <MenuItem value="no">No</MenuItem>
+                              <MenuItem value="unknown">Unknown</MenuItem>
+                            </Select>
+                          </FormControl>
+                        ) : (
+                          <Typography>{report.police_involved || "N/A"}</Typography>
+                        )}
+                      </Grid>
+                      {report.police_involved === "yes" && (
+                        <Grid item xs={12}>
+                          <Typography variant="subtitle2" fontWeight="medium">Police Details:</Typography>
+                          {isEditing ? (
+                            <TextField
+                              fullWidth
+                              multiline
+                              rows={2}
+                              value={editedData.police_details || ""}
+                              onChange={(e) => handleInputChange('police_details', e.target.value)}
+                            />
+                          ) : (
+                            <Typography>{report.police_details || "N/A"}</Typography>
+                          )}
+                        </Grid>
+                      )}
+                    </Grid>
                   </CardContent>
                 </Card>
 
-                {report.media?.length > 0 && (
+                {/* Media Attachments */}
+                {report.media && report.media.length > 0 && (
                   <Card variant="outlined">
                     <CardContent>
                       <Typography variant="h6" gutterBottom>
                         Media Attachments
                       </Typography>
                       <Divider sx={{ mb: 2 }} />
-
-                      <List dense>
+                      
+                      <List>
                         {report.media.map((media, index) => (
                           <ListItem key={index}>
                             <ListItemAvatar>
-                              <Avatar sx={{ width: 32, height: 32 }}>
-                                {media.type?.startsWith("image") && <ImageIcon fontSize="small" />}
-                                {media.type?.startsWith("video") && <Videocam fontSize="small" />}
-                                {media.type?.startsWith("audio") && <Mic fontSize="small" />}
+                              <Avatar>
+                                {media.type?.startsWith('image/') ? <ImageIcon /> : 
+                                 media.type?.startsWith('video/') ? <Videocam /> : 
+                                 media.type?.startsWith('audio/') ? <Mic /> : 
+                                 <Note />}
                               </Avatar>
                             </ListItemAvatar>
-                            <ListItemText
-                              primary={media.name || `Attachment ${index + 1}`}
-                              secondary={media.type || "N/A"}
+                            <ListItemText 
+                              primary={media.filename || `Attachment ${index + 1}`}
+                              secondary={media.type || "Unknown type"}
                             />
                           </ListItem>
                         ))}
@@ -388,189 +825,120 @@ const MyReportsPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-blue-100 flex items-center justify-center">
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
         <CircularProgress />
-      </div>
+      </Box>
     );
   }
 
-  if (reports.length === 0) {
-    return (
-      <div className="min-h-screen bg-blue-100 flex items-center justify-center p-4">
-        <Card variant="outlined" sx={{ maxWidth: 600, mx: "auto" }}className="bg-blue-100">
+  return (
+    <Box sx={{ p: 3 }}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Typography variant="h4" component="h1">
+          My Reports
+        </Typography>
+        <Button
+          variant="contained"
+          startIcon={<Add />}
+          component={Link}
+          to="/submit-report"
+        >
+          Submit New Report
+        </Button>
+      </Box>
+
+      {reports.length === 0 ? (
+        <Card variant="outlined">
           <CardContent sx={{ textAlign: "center", py: 4 }}>
-            <Typography variant="h6" gutterBottom>
-              {userInfo ? `Hi ${getUserDisplayName(userInfo)}, you haven't submitted any reports yet` : "You haven't submitted any reports yet"}
+            <Typography variant="h6" color="textSecondary" gutterBottom>
+              No reports found
             </Typography>
-            <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
-              Submit your first report to get started
+            <Typography variant="body2" color="textSecondary" paragraph>
+              You haven't submitted any reports yet.
             </Typography>
             <Button
               variant="contained"
               startIcon={<Add />}
               component={Link}
-              to="/dashboard/reports"
+              to="/submit-report"
             >
-              Submit New Report
+              Submit Your First Report
             </Button>
           </CardContent>
         </Card>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-blue-100">
-      <div className="max-w-4xl mx-auto p-4 md:p-6 pt-4 pb-6 md:pt-6 md:pb-8">
-        <Box
-          display="flex"
-          justifyContent="space-between"
-          alignItems="center"
-          flexDirection={isMobile ? "column" : "row"}
-          gap={isMobile ? 2 : 0}
-          mb={4}
-        >
-          <Box>
-            <Typography variant="h4" fontWeight="bold" textAlign={isMobile ? "center" : "left"}>
-              My Reports
-            </Typography>
-            {userInfo && (
-              <Typography variant="subtitle1" color="textSecondary">
-                {userInfo.first_name && userInfo.last_name 
-                  ? `Welcome, ${userInfo.first_name} ${userInfo.last_name}` 
-                  : userInfo.name 
-                    ? `Welcome, ${userInfo.name}` 
-                    : `Welcome, ${userInfo.email}`}
-              </Typography>
-            )}
-          </Box>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            component={Link}
-            to="/dashboard/reports"
-            fullWidth={isMobile}
-          >
-            New Report
-          </Button>
-        </Box>
-
-        {isMobile ? (
-          // Mobile view: Card layout
-          <Box display="flex" flexDirection="column" gap={2}>
-            {reports.map((report) => (
-              <Card key={report.id} variant="outlined">
-                <CardContent>
-                  <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1}>
-                    <Typography variant="h6" component="h2">
-                      {report.title || 'N/A'}
+      ) : (
+        <TableContainer component={Paper} variant="outlined">
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>ID</TableCell>
+                <TableCell>Title</TableCell>
+                <TableCell>Type</TableCell>
+                <TableCell>Date</TableCell>
+                <TableCell>Area</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Urgency</TableCell>
+                <TableCell>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {reports.map((report) => (
+                <TableRow key={report.id}>
+                  <TableCell>#{report.id}</TableCell>
+                  <TableCell>
+                    <Typography variant="body2" fontWeight="medium">
+                      {report.title}
                     </Typography>
-                    <Chip 
-                      label={report.report_type || 'N/A'} 
-                      size="small" 
-                      sx={{ ml: 1 }}
-                    />
-                  </Box>
-                  
-                  <Box display="flex" alignItems="center" gap={1} mb={1}>
-                    {getStatusIcon(report.status)}
-                    <Typography variant="body2">
-                      {report.status || 'Unknown'}
-                    </Typography>
-                  </Box>
-                  
-                  <Typography variant="body2" color="textSecondary" mb={1}>
-                    Submitted by: {getUserDisplayName(report.author)}
-                  </Typography>
-                  
-                  <Typography variant="body2" color="textSecondary" mb={2}>
-                    Date: {report.created_at 
-                      ? new Date(report.created_at).toLocaleDateString() 
-                      : 'N/A'
-                    }
-                  </Typography>
-                  
-                  <Typography variant="body2" color="textSecondary" mb={2}>
-                    ID: #{report.id?.slice(0, 8) || 'N/A'}
-                  </Typography>
-                  
-                  <Button
-                    variant="outlined"
-                    fullWidth
-                    onClick={() => handleViewDetails(report)}
-                    disabled={detailsLoading}
-                  >
-                    View Details
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </Box>
-        ) : (
-          // Desktop view: Table layout
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Report ID</TableCell>
-                  <TableCell>Title</TableCell>
-                  <TableCell>Type</TableCell>
-                  <TableCell>Submitted By</TableCell>
-                  <TableCell>Date Submitted</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {reports.map((report) => (
-                  <TableRow key={report.id}>
-                    <TableCell>#{report.id?.slice(0, 8) || 'N/A'}</TableCell>
-                    <TableCell>{report.title || 'N/A'}</TableCell>
-                    <TableCell>
-                      <Chip label={report.report_type || 'N/A'} size="small" />
-                    </TableCell>
-                    <TableCell>
-                      {getUserDisplayName(report.author)}
-                    </TableCell>
-                    <TableCell>
-                      {report.created_at 
-                        ? new Date(report.created_at).toLocaleDateString() 
-                        : 'N/A'
+                  </TableCell>
+                  <TableCell>{report.report_type}</TableCell>
+                  <TableCell>
+                    {report.date ? new Date(report.date).toLocaleDateString() : "N/A"}
+                  </TableCell>
+                  <TableCell>{report.area || "N/A"}</TableCell>
+                  <TableCell>
+                    <Box display="flex" alignItems="center" gap={1}>
+                      {getStatusIcon(report.status)}
+                      <Typography variant="body2">
+                        {report.status || "Unknown"}
+                      </Typography>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={report.urgency || "N/A"}
+                      color={
+                        report.urgency === "high" || report.urgency === "critical"
+                          ? "error"
+                          : report.urgency === "medium"
+                          ? "warning"
+                          : "default"
                       }
-                    </TableCell>
-                    <TableCell>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        {getStatusIcon(report.status)}
-                        <Typography variant="body2">
-                          {report.status || 'Unknown'}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={() => handleViewDetails(report)}
-                        disabled={detailsLoading}
-                      >
-                        View Details
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
-      </div>
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => handleViewDetails(report)}
+                    >
+                      View Details
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
 
-      <ReportDetailsDialog 
-        report={selectedReport} 
-        open={dialogOpen} 
+      <ReportDetailsDialog
+        report={selectedReport}
+        open={dialogOpen}
         onClose={handleCloseDialog}
         loading={detailsLoading}
       />
-    </div>
+    </Box>
   );
 };
 

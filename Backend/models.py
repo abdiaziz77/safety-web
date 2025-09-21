@@ -130,17 +130,37 @@ class Report(db.Model):
     time = db.Column(db.DateTime, nullable=False)
     urgency = db.Column(db.String(20), nullable=False, default='medium')
     status = db.Column(db.String(20), nullable=False, default='Pending')
-    location = db.Column(db.String(255), nullable=False)
-    latitude = db.Column(db.Float)
-    longitude = db.Column(db.Float)
+    
+    # Location Details for Garissa County
+    location = db.Column(db.String(255))
+    area = db.Column(db.String(100), nullable=False)  # e.g., Garissa Town, Dadaab, Fafi, etc.
+    ward = db.Column(db.String(100), nullable=False)  # e.g., Garissa Central, Dagahaley, etc.
+    landmark = db.Column(db.String(255))  # e.g., near Garissa Primary School
     location_type = db.Column(db.String(50), nullable=False, default='public')
     location_details = db.Column(db.Text)
+    
+    # Personal Information
+    anonymous = db.Column(db.Boolean, default=False)
+    full_name = db.Column(db.String(100))
+    email = db.Column(db.String(100))
+    phone = db.Column(db.String(20))
+    address = db.Column(db.Text)
+    
+    # Incident Details
     witnesses = db.Column(db.Boolean, default=False)
     witness_details = db.Column(db.Text)
     evidence_available = db.Column(db.Boolean, default=False)
     evidence_details = db.Column(db.Text)
     police_involved = db.Column(db.Boolean, default=False)
     police_details = db.Column(db.Text)
+    
+    # Additional Information
+    category = db.Column(db.String(50))
+    subcategory = db.Column(db.String(50))
+    tags = db.Column(db.JSON)  # Store as JSON array
+    custom_fields = db.Column(db.JSON)  # Store as JSON object
+    
+    # Admin Fields
     admin_notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -162,17 +182,37 @@ class Report(db.Model):
             'time': self.time.isoformat(),
             'urgency': self.urgency,
             'status': self.status,
+            
+            # Location Details
             'location': self.location,
-            'latitude': self.latitude,
-            'longitude': self.longitude,
+            'area': self.area,
+            'ward': self.ward,
+            'landmark': self.landmark,
             'location_type': self.location_type,
             'location_details': self.location_details,
+            
+            # Personal Information
+            'anonymous': self.anonymous,
+            'full_name': self.full_name,
+            'email': self.email,
+            'phone': self.phone,
+            'address': self.address,
+            
+            # Incident Details
             'witnesses': self.witnesses,
             'witness_details': self.witness_details,
             'evidence_available': self.evidence_available,
             'evidence_details': self.evidence_details,
             'police_involved': self.police_involved,
             'police_details': self.police_details,
+            
+            # Additional Information
+            'category': self.category,
+            'subcategory': self.subcategory,
+            'tags': self.tags,
+            'custom_fields': self.custom_fields,
+            
+            # Admin Fields
             'admin_notes': self.admin_notes,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat(),
@@ -181,6 +221,31 @@ class Report(db.Model):
             'media': [m.to_dict() for m in self.media]
         }
 
+
+# ------------------ REPORT MEDIA MODEL ------------------
+class ReportMedia(db.Model):
+    __tablename__ = 'report_media'
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = db.Column(db.String(36), db.ForeignKey('reports.id', ondelete="CASCADE"), nullable=False)
+    url = db.Column(db.String(255), nullable=False)
+    type = db.Column(db.String(50), nullable=False)
+    name = db.Column(db.String(100))
+    size = db.Column(db.Integer)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    report = db.relationship('Report', back_populates='media')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'report_id': self.report_id,
+            'url': self.url,
+            'type': self.type,
+            'name': self.name,
+            'size': self.size,
+            'created_at': self.created_at.isoformat()
+        }
 # ------------------ NOTIFICATION MODEL ------------------
 class Notification(db.Model):
     __tablename__ = 'notifications'
@@ -268,31 +333,6 @@ class Alert(db.Model):
             'creator': self.creator.to_dict() if self.creator else None,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat()
-        }
-
-# ------------------ REPORT MEDIA MODEL ------------------
-class ReportMedia(db.Model):
-    __tablename__ = 'report_media'
-
-    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    report_id = db.Column(db.String(36), db.ForeignKey('reports.id', ondelete="CASCADE"), nullable=False)
-    url = db.Column(db.String(255), nullable=False)
-    type = db.Column(db.String(50), nullable=False)
-    name = db.Column(db.String(100))
-    size = db.Column(db.Integer)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    report = db.relationship('Report', back_populates='media')
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'report_id': self.report_id,
-            'url': self.url,
-            'type': self.type,
-            'name': self.name,
-            'size': self.size,
-            'created_at': self.created_at.isoformat()
         }
 
 # ------------------ CHAT MODELS ------------------
@@ -495,3 +535,27 @@ class ContactMessage(db.Model):
             'assigned_admin': self.assigned_admin.to_dict() if self.assigned_admin else None,
             'response_admin': self.response_admin.to_dict() if self.response_admin else None
         }
+# ------------------ FEEDBACK MODEL ------------------
+class Feedback(db.Model):
+    __tablename__ = 'feedbacks'
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), nullable=False)
+    rating = db.Column(db.Integer, nullable=False)  # 1-5 stars
+    message = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'email': self.email,
+            'rating': self.rating,
+            'message': self.message,
+            'created_at': self.created_at.isoformat()
+        }
+
+    def get_rating_stars(self):
+        """Return star representation of rating"""
+        return '★' * self.rating + '☆' * (5 - self.rating)

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, AlertTriangle, Users, Clock, Phone, MapPin, Activity, TrendingUp, CheckCircle, BarChart3, Building, Eye, Heart, Zap, ChevronRight, Play, Target, Bell, Lock } from 'lucide-react';
+import { Shield, AlertTriangle, Users, Clock, Phone, MapPin, Activity, TrendingUp, CheckCircle, BarChart3, Building, Eye, Heart, Zap, ChevronRight, Play, Target, Bell, Lock, Map, Globe, TargetIcon } from 'lucide-react';
 
 const Home = () => {
   // Features data
@@ -113,6 +113,30 @@ const Home = () => {
     }
   ];
 
+  // Benefits of using SafeZone101
+  const benefits = [
+    {
+      title: "Save Time",
+      description: "No more traveling to police stations or waiting in long queues",
+      icon: Clock
+    },
+    {
+      title: "Cost Effective",
+      description: "Eliminate transportation costs associated with reporting incidents",
+      icon: TrendingUp
+    },
+    {
+      title: "Instant Reporting",
+      description: "Report safety concerns immediately from anywhere, anytime",
+      icon: Zap
+    },
+    {
+      title: "Local Focus",
+      description: "Specifically designed for Garissa County's security needs",
+      icon: Map
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-white font-sans">
       {/* Hero Section */}
@@ -137,7 +161,7 @@ const Home = () => {
           <div className="max-w-4xl mx-auto">
             <div className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full mb-8">
               <Shield className="h-5 w-5" />
-              <span className="text-sm font-medium">Introducing SafeZone101 v2.0</span>
+              <span className="text-sm font-medium">Introducing SafeZone101 </span>
             </div>
             
             <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
@@ -205,6 +229,88 @@ const Home = () => {
                 <p className="text-gray-600">{point.description}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Who We Are Section - Enhanced with more details */}
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center max-w-4xl mx-auto mb-16">
+            <div className="inline-flex items-center bg-blue-100 text-blue-800 px-4 py-2 rounded-full mb-6">
+              <Globe className="h-5 w-5 mr-2" />
+              <span className="font-medium">Serving Garissa County, Kenya</span>
+            </div>
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">Who We Are</h2>
+            <p className="text-xl text-gray-600">
+              SafeZone101 was founded to revolutionize safety reporting and emergency response through technology innovation
+            </p>
+          </div>
+          
+          <div className="max-w-6xl mx-auto">
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-8 md:p-12 text-white mb-12 shadow-xl">
+              <div className="flex flex-col md:flex-row items-center">
+                <div className="md:w-2/3 mb-8 md:mb-0 md:pr-8">
+                  <h3 className="text-2xl md:text-3xl font-bold mb-6">Our Mission: Saving Time, Saving Lives</h3>
+                  <p className="text-lg mb-4">
+                    We recognized that traditional safety reporting methods—traveling to police stations, waiting in long queues, 
+                    and dealing with paperwork—were inefficient and time-consuming for the people of Garissa County.
+                  </p>
+                  <p className="text-lg">
+                    SafeZone101 was created as the optimal solution: a time-saving, easy-to-use platform that connects citizens 
+                    directly with the security management team, eliminating unnecessary delays and transportation costs.
+                  </p>
+                </div>
+                <div className="md:w-1/3 bg-white/20 rounded-xl p-6 text-center">
+                  <TargetIcon className="h-16 w-16 mx-auto mb-4" />
+                  <h4 className="font-bold text-xl mb-2">Focused on Garissa</h4>
+                  <p>Customized for local security needs and challenges</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="text-center mb-12">
+              <h3 className="text-3xl font-bold text-gray-900 mb-6">How We Help You Save Time</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {benefits.map((benefit, index) => (
+                  <div key={index} className="bg-gray-50 rounded-xl p-6 hover:shadow-md transition-all">
+                    <div className="bg-blue-100 w-14 h-14 rounded-lg flex items-center justify-center mb-4 mx-auto text-blue-600">
+                      <benefit.icon className="h-7 w-7" />
+                    </div>
+                    <h4 className="font-semibold text-gray-900 mb-2">{benefit.title}</h4>
+                    <p className="text-gray-600 text-sm">{benefit.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="bg-gray-50 rounded-2xl p-8 md:p-10">
+              <div className="max-w-4xl mx-auto">
+                <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">Our Story</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div>
+                    <p className="text-gray-700 mb-4">
+                      Founded by a team of security experts and technology innovators, SafeZone101 combines decades of 
+                      experience in emergency response with cutting-edge digital solutions.
+                    </p>
+                    <p className="text-gray-700">
+                      We understand the unique safety challenges faced by communities in Garissa County and have designed 
+                      our platform specifically to address these needs with efficiency and compassion.
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-700 mb-4">
+                      Our system eliminates the traditional barriers to safety reporting—saving you transportation costs, 
+                      time spent traveling to stations, and long waiting periods just to file a report.
+                    </p>
+                    <p className="text-gray-700">
+                      With SafeZone101, help is just a click away, connecting you directly with the security management 
+                      team responsible for protecting Garissa County.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
